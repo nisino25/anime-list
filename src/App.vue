@@ -1,71 +1,76 @@
 <template>
-    <div>
-    <h1>Anime Details</h1>
+  <div>
+    <h1>Popular Anime Rankings</h1>
     <div v-if="loading">Loading...</div>
-    <div v-else-if="animeData">
-      <h2>{{ animeData.title.romaji }}</h2>
-      <p>English Title: {{ animeData.title.english }}</p>
-      <p>Native Title: {{ animeData.title.native }}</p>
+    <div v-else>
+      <ul>
+        <li v-for="(anime, index) in animes" :key="anime.id">
+          <h3>{{ index + 1 }}. {{ anime.title.romaji }}</h3>
+          <img :src="anime.coverImage.medium" :alt="anime.title.romaji" />
+          <p>Total Episodes: {{ anime.episodes }}</p>
+          <p>Aired: {{ anime.seasonYear }}</p>
+          <p>Popularity: {{ anime.popularity }}</p>
+        </li>
+      </ul>
     </div>
   </div>
 </template>
 
 <script>
-  // import HelloWorld from './components/HelloWorld.vue'
-
-  export default {
-    name: 'App',
-    
-    data() {
-      return {
-        animeData: null,
-        loading: false,
-        error: null
-      };
-    },
-    methods: {
-      async fetchAnimeData() {
-        this.loading = true;
-        const query = `
-          query ($id: Int) {
-            Media (id: $id, type: ANIME) {
+export default {
+  data() {
+    return {
+      animes: [],
+      loading: false,
+      error: null
+    };
+  },
+  methods: {
+    async fetchPopularAnime() {
+      this.loading = true;
+      const query = `
+        {
+          Page(page: 1, perPage: 10) {
+            media(sort: POPULARITY_DESC, type: ANIME) {
               id
               title {
                 romaji
-                english
-                native
               }
+              coverImage {
+                medium
+              }
+              episodes
+              seasonYear
+              popularity
             }
           }
-        `;
-        const variables = { id: 15125 }; // You can change the ID to fetch different anime
-        try {
-          const response = await fetch('https://graphql.anilist.co', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: JSON.stringify({ query, variables })
-          });
-          const jsonResponse = await response.json();
-          if (jsonResponse.errors) {
-            throw new Error('Error fetching data');
-          }
-          this.animeData = jsonResponse.data.Media;
-        } catch (error) {
-          console.error('Fetch error:', error);
-          this.error = error;
-        } finally {
-          this.loading = false;
         }
+      `;
+      try {
+        const response = await fetch('https://graphql.anilist.co', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({ query })
+        });
+        const jsonResponse = await response.json();
+        this.animes = jsonResponse.data.Page.media;
+      } catch (error) {
+        console.error('Fetch error:', error);
+        this.error = error;
+      } finally {
+        this.loading = false;
       }
-    },
-    mounted() {
-      this.fetchAnimeData();
     }
+  },
+  mounted() {
+    this.fetchPopularAnime();
   }
+};
 </script>
+
 
 <style>
   /* #app {
