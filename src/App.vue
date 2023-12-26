@@ -180,7 +180,7 @@ export default {
 
 .star-rating {
   font-size: 15px;
-  color: lightgray;
+  color: Charcoal;
   margin: 10px 0px;
 }
 
