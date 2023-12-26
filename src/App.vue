@@ -6,8 +6,17 @@
         <li v-for="anime in trendingAnime" :key="anime.id">
           <img :src="anime.coverImage.large" :alt="anime.title.romaji" />
           <!-- <h2>{{ anime.title.romaji }}</h2> -->
-          <h4>{{ anime.title.native }}</h4>
-          <span v-for="n in 5" :key="n" class="star" :class="{ 'filled': n <= computedStars(anime.averageScore) }">★</span>
+
+          <p>{{ anime.title.native }}</p>
+          <!-- <span v-for="n in 5" :key="n" class="star" :class="{ 'filled': n <= computedStars(anime.averageScore) }">★</span> -->
+          <!-- <span v-for="n in 5" :key="n" class="star" :class="starClass(n)">★</span> -->
+          <!-- <span v-for="n in 5" :key="n" class="star" :class="starClass(n, anime.averageScore)">★</span> -->
+          <div class="star-rating">
+            <div class="stars-outer">
+              <div class="stars-inner" :style="{ width: `${anime.averageScore}%` }"></div>
+            </div>
+          </div>
+          
           <!-- <p>Score: {{ anime.averageScore }}</p> -->
         </li>
       </ul>
@@ -25,6 +34,8 @@ export default {
       trendingAnime: [],
       loading: false,
       testNum: 3,
+
+      ratingPercent: Number,
     };
   },
   methods: {
@@ -77,16 +88,40 @@ export default {
     handleErrors(error) {
       console.error('Fetch error:', error);
     },
-    computedStars(score) {
-      return Math.ceil(score / 100 * 5);
+    // starClass(starNumber) {
+    //   const fillLevel = Math.ceil((this.ratingPercent / 100) * 5);
+    //   if (starNumber <= fillLevel) {
+    //     return 'filled';
+    //   } else if (starNumber === fillLevel + 1) {
+    //     // Check for 25%, 50%, and 75% fill
+    //     const partialFill = this.ratingPercent % 20;
+    //     if (partialFill >= 15) return 'three-quarter-filled';
+    //     if (partialFill >= 10) return 'half-filled';
+    //     if (partialFill >= 5) return 'quarter-filled';
+    //   }
+    //   return '';
+    // },
+    starClass(starNumber, score) {
+      const fillLevel = Math.ceil((score / 100) * 5);
+      if (starNumber <= fillLevel) {
+        // console.log(';kkk')
+        return 'filled';
+      } else if (starNumber === fillLevel + 1) {
+        // Check for 25%, 50%, and 75% fill
+        const partialFill = this.ratingPercent % 20;
+        console.log(partialFill)
+        if (partialFill >= 15) return 'three-quarter-filled';
+        if (partialFill >= 10) return 'half-filled';
+        if (partialFill >= 5) return 'quarter-filled';
+      }
     }
   },
   mounted() {
     this.fetchTrendingAnime();
   },
-  props: {
-    ratingPercent: Number
-  },
+  // props: {
+  //   ratingPercent: Number
+  // },
 
 };
 </script>
@@ -138,10 +173,38 @@ export default {
     object-fit: cover; 
   }
 
-  .star {
-  color: gray; /* Color for unfilled star */
+  .list-container li p{
+    font-weight: bold;
+    margin: 10px 0px;
+  }
+
+.star-rating {
+  font-size: 15px;
+  color: lightgray;
+  margin: 10px 0px;
 }
-.star.filled {
-  color: #FB6350; /* Color for filled star */
+
+.stars-outer {
+  display: inline-block;
+  position: relative;
+  unicode-bidi: bidi-override;
+}
+
+.stars-outer::before {
+  content: '★★★★★';
+}
+
+.stars-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  width: 0;
+  color: #FB6350;
+}
+
+.stars-inner::before {
+  content: '★★★★★';
 }
 </style>
