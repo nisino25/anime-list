@@ -1,51 +1,59 @@
 <template>
   <div>
-    <h1>Popular Anime Rankings</h1>
-    <div v-if="loading">Loading...</div>
-    <div v-else>
-      <ul>
-        <li v-for="(anime, index) in animes" :key="anime.id">
-          <h3>{{ index + 1 }}. {{ anime.title.romaji }}</h3>
-          <img :src="anime.coverImage.medium" :alt="anime.title.romaji" />
-          <p>Total Episodes: {{ anime.episodes }}</p>
-          <p>Aired: {{ anime.seasonYear }}</p>
-          <p>Popularity: {{ anime.popularity }}</p>
+    <h1>Trending Anime</h1>
+    <div v-if="trendingAnime.length">
+      <ul class="list-container">
+        <li v-for="anime in trendingAnime" :key="anime.id">
+          <img :src="anime.coverImage.large" :alt="anime.title.romaji" />
+          <!-- <h2>{{ anime.title.romaji }}</h2> -->
+          <h4>{{ anime.title.native }}</h4>
+          <span v-for="n in 5" :key="n" class="star" :class="{ 'filled': n <= computedStars(anime.averageScore) }">★</span>
+          <!-- <p>Score: {{ anime.averageScore }}</p> -->
         </li>
       </ul>
     </div>
+    <div v-else>
+      Loading...
+    </div>
   </div>
 </template>
-
 <script>
 export default {
+  name: "TrendingAnime",
   data() {
     return {
-      animes: [],
+      trendingAnime: [],
       loading: false,
-      error: null
+      testNum: 3,
     };
   },
   methods: {
-    async fetchPopularAnime() {
+    async fetchTrendingAnime() {
       this.loading = true;
       const query = `
-        {
-          Page(page: 1, perPage: 10) {
-            media(sort: POPULARITY_DESC, type: ANIME) {
+        query ($page: Int, $perPage: Int) {
+          Page(page: $page, perPage: $perPage) {
+            media(type: ANIME, sort: TRENDING_DESC) {
               id
               title {
+                native
                 romaji
+                english
               }
+              averageScore
               coverImage {
-                medium
+                large
               }
-              episodes
-              seasonYear
-              popularity
             }
           }
         }
       `;
+
+      const variables = {
+        page: 1,
+        perPage: 12
+      };
+
       try {
         const response = await fetch('https://graphql.anilist.co', {
           method: 'POST',
@@ -53,23 +61,36 @@ export default {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
-          body: JSON.stringify({ query })
+          body: JSON.stringify({
+            query,
+            variables
+          })
         });
         const jsonResponse = await response.json();
-        this.animes = jsonResponse.data.Page.media;
+        this.trendingAnime = jsonResponse.data.Page.media;
       } catch (error) {
-        console.error('Fetch error:', error);
-        this.error = error;
+        console.error('Error fetching data:', error);
       } finally {
         this.loading = false;
       }
+    },
+    handleErrors(error) {
+      console.error('Fetch error:', error);
+    },
+    computedStars(score) {
+      return Math.ceil(score / 100 * 5);
     }
   },
   mounted() {
-    this.fetchPopularAnime();
-  }
+    this.fetchTrendingAnime();
+  },
+  props: {
+    ratingPercent: Number
+  },
+
 };
 </script>
+
 
 
 <style>
@@ -87,4 +108,40 @@ export default {
     font-family: 'Roboto Condensed', sans-serif;
     /* #FB6350 */
   }
+
+  .list-container{
+    padding-inline-start: unset;
+
+    display: grid;
+    grid-template-columns: 31.5% 31.5% 31.5%;
+    justify-content: space-between;
+
+    width: 95%;
+    margin:auto;
+
+    /* background: red; */
+  }
+
+  .list-container li{
+    list-style: none;
+  }
+
+  .list-container li img{
+    display: block;
+    margin: auto;
+    /* max-width: 100%; */
+    border: 2px solid black;
+    border-radius: 10px;
+
+    max-width: 100%; /* Set the maximum width to prevent stretching */
+    height: 175px; /* Set the fixed height to 155px */
+    object-fit: cover; 
+  }
+
+  .star {
+  color: gray; /* Color for unfilled star */
+}
+.star.filled {
+  color: #FB6350; /* Color for filled star */
+}
 </style>
