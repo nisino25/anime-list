@@ -1,7 +1,7 @@
 <template>
   <div>
     <h1>Trending Anime</h1>
-    <button @click="fetchRandomAnime()">Get Random</button>
+    <button @click="fetchRandomAnime()" style="position: absolute; right: 0; transform: translateY(-200%);">Get Random</button>
     <div v-if="fetchedData.length">
       <ul class="list-container">
         <!-- <li v-for="anime in trendingAnime" :key="anime.id">
@@ -34,6 +34,17 @@
     <div v-else>
       Loading...
     </div>
+
+    <div class="radial-menu" @click="isMenuOpen = !isMenuOpen">
+      <template v-if="!isMenuOpen">
+        <p>hey</p>
+      </template>
+      <template v-else>
+        <p>
+          so
+        </p>
+      </template>
+    </div>
   </div>
 </template>
 
@@ -51,6 +62,8 @@
         testNum: 3,
 
         ratingPercent: Number,
+
+        isMenuOpen: false,
       };
     },
     methods: {
@@ -113,7 +126,7 @@
 
         const variables = {
           page: 1,
-          perPage: 12
+          perPage: 18
         };
 
         try {
@@ -142,56 +155,89 @@
       },
       async fetchRandomAnime() {
         this.loading = true;
-        const totalPages = 1450
+        const totalPages = 500
         const randomPage = Math.floor(Math.random() * totalPages) + 1; // Random page number
         // const randomPage = 50
         console.log(randomPage)
         const query = `
           query ($page: Int, $perPage: Int) {
             Page(page: $page, perPage: $perPage) {
-              media(type: ANIME, sort: TRENDING_DESC) {
+              media(type: ANIME, sort: SCORE_DESC) {
                 id
+                idMal
                 title {
-                  native
                   romaji
                   english
+                  native
                 }
+                type
+                endDate {
+                  year
+                  month
+                  day
+                }
+                startDate {
+                  year
+                  month
+                  day
+                }
+                studios(isMain: true) {
+                  nodes {
+                    name
+                  }
+                }
+                isAdult
+                source
+                genres
+                volumes
+                episodes
+                chapters
+                siteUrl
+                status
                 averageScore
+                meanScore
+                popularity
+                description
+                favourites
                 coverImage {
+                  extraLarge
+                  medium
                   large
+                  color
                 }
               }
             }
           }
         `;
 
-                  const variables = {
-                    page: randomPage,
-                    perPage: 50 // Number of items per page
-                  };
+            const variables = {
+              page: randomPage,
+              perPage: 15 // Number of items per page
+            };
 
-                  try {
-                    const response = await fetch('https://graphql.anilist.co', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        query,
-                        variables
-                      })
-                    });
-                    const jsonResponse = await response.json();
-                    const fetchedData = jsonResponse.data.Page.media;
+            try {
+              const response = await fetch('https://graphql.anilist.co', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                  query,
+                  variables
+                })
+              });
+              const jsonResponse = await response.json();
+              const fetchedData = jsonResponse.data.Page.media;
 
-                    // Randomly select entries from the fetched list
-                    this.fetchedData = this.selectRandomEntries(fetchedData, 12);
-              } catch (error) {
-                console.error('Error fetching data:', error);
-              } finally {
-                this.loading = false;
-              }
+              // Randomly select entries from the fetched list
+              this.fetchedData = fetchedData
+              // this.fetchedData = this.selectRandomEntries(fetchedData, 15);
+        } catch (error) {
+          console.error('Error fetching data:', error);
+        } finally {
+          this.loading = false;
+        }
       },
 
       getDetail(anime){
@@ -199,7 +245,7 @@
         alert(`
           startDate: ${anime.startDate?.year}/${anime.startDate?.month}/${anime.startDate?.day}\n
           EndDate: ${anime.endDate?.year}/${anime.endDate?.month}/${anime.endDate?.day}\n
-          Studios: ${anime.studios?.nodes[0].name}\n
+          Studios: ${anime.studios?.nodes[0]?.name}\n
           Genres: ${anime.genres}\n
           Status: ${anime.status}\n
           Episodes: ${anime.episodes}\n
@@ -243,12 +289,12 @@
       console.clear()
       this.fetchTrendingAnime();
       AOS.init();
+
+      this.isMenuOpen = true
     },
 
   };
 </script>
-
-
 
 <style>
   /* #app {
@@ -313,34 +359,52 @@
     white-space: normal;
   }
 
-.star-rating {
-  font-size: 15px;
-  color: Charcoal;
-  margin: 10px 0px 20px;
-  line-height: 1;
-}
+  .star-rating {
+    font-size: 15px;
+    color: Charcoal;
+    margin: 10px 0px 20px;
+    line-height: 1;
+  }
 
-.stars-outer {
-  display: inline-block;
-  position: relative;
-  unicode-bidi: bidi-override;
-}
+  .stars-outer {
+    display: inline-block;
+    position: relative;
+    unicode-bidi: bidi-override;
+  }
 
-.stars-outer::before {
-  content: '★★★★★';
-}
+  .stars-outer::before {
+    content: '★★★★★';
+  }
 
-.stars-inner {
-  position: absolute;
-  top: 0;
-  left: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  width: 0;
-  color: #FB6350;
-}
+  .stars-inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    width: 0;
+    color: #FB6350;
+  }
 
-.stars-inner::before {
-  content: '★★★★★';
-}
+  .stars-inner::before {
+    content: '★★★★★';
+  }
+
+  .radial-menu{
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    
+    padding: 20px;
+    background: lightgrey;
+  }
+
+  .radial-menu p{
+
+    line-height: 1;
+    margin: 0;
+  }
+
+
+  /* ------------------------------ */
 </style>
