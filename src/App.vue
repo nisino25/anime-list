@@ -1,19 +1,8 @@
 <template>
-  <div>
     <h1>Trending Anime</h1>
     <button @click="fetchRandomAnime()" style="position: absolute; right: 0; transform: translateY(-200%);">Get Random</button>
     <div v-if="fetchedData.length">
       <ul class="list-container">
-        <!-- <li v-for="anime in trendingAnime" :key="anime.id">
-          <img :src="anime.coverImage.large" :alt="anime.title.romaji" />
-
-          <p>{{ anime.title.native }}</p>
-          <div class="star-rating">
-            <div class="stars-outer">
-              <div class="stars-inner" :style="{ width: `${anime.averageScore}%` }"></div>
-            </div>
-          </div>
-        </li> -->
         <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
           <li data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000" @click="getDetail(anime)">
             <img :src="anime.coverImage.large" :alt="anime.title.romaji" />
@@ -35,17 +24,37 @@
       Loading...
     </div>
 
-    <div class="radial-menu" @click="isMenuOpen = !isMenuOpen">
-      <template v-if="!isMenuOpen">
-        <p>hey</p>
-      </template>
-      <template v-else>
-        <p>
-          so
-        </p>
-      </template>
+    <div class="radial-menu">
+      <div class="pie pie1" :style="getPieStyle('pie1')">
+        <div class="pie-color pie-color1"></div>
+      </div>
+      <div class="pie pie2" :style="getPieStyle('pie2')">
+        <div class="pie-color pie-color2"></div>
+      </div>
+      <div class="pie pie3" :style="getPieStyle('pie3')">
+        <div class="pie-color pie-color3"></div>
+      </div>
+      <div class="pie pie4" :style="getPieStyle('pie4')">
+        <div class="pie-color pie-color4"></div>
+      </div>
+      <div class="menu" onclick="document.body.classList.toggle('active')" @click="toggleRotation()">
+        <svg class="hamburger" xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+          <g
+            fill="none"
+            stroke="#000"
+            stroke-width="7.999"
+            stroke-linecap="round"
+          >
+            <path d="M 55,26.000284 L 24.056276,25.999716" />
+            <path d="M 24.056276,49.999716 L 75.943724,50.000284" />
+            <path d="M 45,73.999716 L 75.943724,74.000284" />
+            <path d="M 75.943724,26.000284 L 45,25.999716" />
+            <path d="M 24.056276,73.999716 L 55,74.000284" />
+          </g>
+        </svg>
     </div>
-  </div>
+    </div>
+
 </template>
 
 <script>
@@ -64,6 +73,13 @@
         ratingPercent: Number,
 
         isMenuOpen: false,
+
+        rotations: {
+          pie1: -90,
+          pie2: -67.5,
+          pie3: -45,
+          pie4: -22.5,
+        },
       };
     },
     methods: {
@@ -283,18 +299,40 @@
           if (partialFill >= 10) return 'half-filled';
           if (partialFill >= 5) return 'quarter-filled';
         }
-      }
+      },
+
+      // menu option -----------
+      getPieStyle(className) {
+        return {
+          transform: `rotate(${this.rotations[className]}deg)`
+        };
+      },
+      toggleRotation() {
+        if(!this.isMenuOpen){
+          Object.keys(this.rotations).forEach((className) => {
+            this.rotations[className] += 90;
+          });
+          this.isMenuOpen = true
+        }else{
+          Object.keys(this.rotations).forEach((className) => {
+            this.rotations[className] -= 90;
+          });
+          this.isMenuOpen = false
+        }
+      },
     },
     mounted() {
       console.clear()
       this.fetchTrendingAnime();
       AOS.init();
 
-      this.isMenuOpen = true
+      // this.isMenuOpen = true
     },
 
   };
 </script>
+
+
 
 <style>
   /* #app {
@@ -310,6 +348,10 @@
     background: #F7EADF;
     font-family: 'Roboto Condensed', sans-serif;
     /* #FB6350 */
+  }
+
+  body{
+    position: relative;
   }
 
   .list-container{
@@ -390,21 +432,112 @@
     content: '★★★★★';
   }
 
-  .radial-menu{
+  /* radial menu ----------------- */
+
+  @import url("https://fonts.googleapis.com/css?family=Crimson+Text&display=swap");
+  @import url("https://fonts.googleapis.com/css?family=Work+Sans&display=swap");
+
+  .pie {
+    -webkit-tap-highlight-color: transparent;
+    background: #000;
+    border-radius: 50%;
+    /* box-shadow: 0 0 4px 5px rgba(0, 0, 0, 0.2); */
+    cursor: pointer;
+    height: 400px;
     position: fixed;
-    left: 0;
-    bottom: 0;
-    
-    padding: 20px;
-    background: lightgrey;
+
+    right: 0px;
+    bottom: 0px;
+
+    clip-path: polygon(200px 200px, 0 200px, 0px 123.46px);
+    clip-path: polygon(200px 200px, 0 200px, 0px 117px);
+
+    right: -200px;
+    bottom: -200px;
+
+    width: 400px;
+    /* transform: translateX(200px) translateY(200px); */
+    transition: transform 400ms;
+  }
+  .pie-color:hover {
+    opacity: 0.85;
+  }
+  .pie-color:active {
+    opacity: 0.7;
   }
 
-  .radial-menu p{
-
-    line-height: 1;
-    margin: 0;
+  .pie-color {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
   }
 
+  .pie-color1,.pie-color3 {
+    background: white;
+  }
 
-  /* ------------------------------ */
+  .pie-color2, .pie-color4 {
+    background: #FB6350;
+  }
+
+  .menu {
+    -webkit-tap-highlight-color: transparent;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 4px 5px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    height: 200px;
+    right: -100px;
+    bottom: -100px;
+    position: fixed;
+    width: 200px;
+  }
+
+  .hamburger {
+    cursor: pointer;
+    height: 46px;
+    left: 25%;
+    position: relative;
+    top: 25%;
+    width: 46px;
+
+    transform: translate(-25%,-25%);
+  }
+  .hamburger path {
+    transition: transform 300ms;
+  }
+
+  .hamburger path:nth-child(1) {
+  transform-origin: 25% 29%;
+}
+.hamburger path:nth-child(2) {
+  transform-origin: 50% 50%;
+}
+.hamburger path:nth-child(3) {
+  transform-origin: 75% 72%;
+}
+.hamburger path:nth-child(4) {
+  transform-origin: 75% 29%;
+}
+.hamburger path:nth-child(5) {
+  transform-origin: 25% 72%;
+}
+.active .pie {
+  transform: translateX(0) translateY(0);
+}
+.active .hamburger path:nth-child(1) {
+  transform: rotate(45deg);
+}
+.active .hamburger path:nth-child(2) {
+  transform: scaleX(0);
+}
+.active .hamburger path:nth-child(3) {
+  transform: rotate(45deg);
+}
+.active .hamburger path:nth-child(4) {
+  transform: rotate(-45deg);
+}
+.active .hamburger path:nth-child(5) {
+  transform: rotate(-45deg);
+}
 </style>
