@@ -338,8 +338,7 @@
       startPress(image, event) {
         
         this.pressTimer = setTimeout(() => {
-          // Disable vertical scrolling
-          document.body.style.overflowY = 'hidden';
+          
 
           this.showCircle = true;
           console.log('1sec point');
@@ -361,7 +360,9 @@
       },
       moveImage(event) {
         if (this.showCircle) {
-          console.log(`current location: ${this.imgPosition.x},${this.imgPosition.y}`)
+          // Disable vertical scrolling
+          document.body.style.overflowY = 'hidden';
+          
           this.imgPosition = {
             x: event.touches[0].clientX - 50,
             y: event.touches[0].clientY - 50,
