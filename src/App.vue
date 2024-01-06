@@ -352,6 +352,7 @@
 
   body{
     position: relative;
+    overflow-x: hidden;
   }
 
   .list-container{
@@ -363,6 +364,8 @@
 
     width: 95%;
     margin:auto;
+
+    margin-bottom: 100px;
 
     /* background: red; */
   }
