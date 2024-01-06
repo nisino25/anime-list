@@ -4,10 +4,13 @@
     <div v-if="fetchedData.length">
       <ul class="list-container">
         <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
-          <li data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000" @click="getDetail(anime)">
-            <img :src="anime.coverImage.large" :alt="anime.title.romaji" />
+          <li data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000"  
+          >
+            <img :src="anime.coverImage.large" :alt="anime.title.romaji" @touchstart="startPress(anime.coverImage.large, $event)" 
+          @touchend="cancelPress"
+          @touchmove="moveImage($event)"/>
 
-            <p>{{ anime.title.native }}</p>
+            <p @click="getDetail(anime)">{{ anime.title.native }}</p>
             <div class="star-rating">
                 <div class="stars-outer">
                     <div class="stars-inner" :style="{ width: `${anime.averageScore}%` }"></div>
@@ -15,9 +18,6 @@
             </div>
         </li>
         </template>
-
-       
-
       </ul>
     </div>
     <div v-else>
@@ -53,6 +53,14 @@
           </g>
         </svg>
     </div>
+
+    <div v-if="showCircle" 
+         :style="{ background: `url(${selectedImage}) center/cover`, 
+                   transform: `translate(${imgPosition.x}px, ${imgPosition.y}px)` }" 
+         class="circle"
+    ></div>
+    <!-- <div :style="{ background: `url(${selectedImage}) center/cover`, transform: `translate(${imgPosition.x}px, ${imgPosition.y}px)` }" class="circle">
+    </div> -->
     </div>
 
 </template>
@@ -80,6 +88,11 @@
           pie3: -45,
           pie4: -22.5,
         },
+
+        showCircle: false,
+        selectedImage: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx137908-50af3lKVbst2.jpg',
+        pressTimer: null,
+        imgPosition: { x: 0, y: 0 },
       };
     },
     methods: {
@@ -320,6 +333,35 @@
           this.isMenuOpen = false
         }
       },
+
+
+      startPress(image, event) {
+        console.log('touch start');
+        this.pressTimer = setTimeout(() => {
+          this.showCircle = true;
+          console.log('1sec point');
+          console.log(image)
+          this.selectedImage = image;
+          this.imgPosition = {
+            x: event.touches[0].clientX - 50, // Assuming circle radius 50px
+            y: event.touches[0].clientY - 50,
+          };
+        }, 1000); // 1 second
+      },
+      cancelPress() {
+        console.log('touch ends')
+        clearTimeout(this.pressTimer);
+        this.showCircle = false;
+      },
+      moveImage(event) {
+        if (this.showCircle) {
+          console.log(`current location: ${this.imgPosition.x},${this.imgPosition.y}`)
+          this.imgPosition = {
+            x: event.touches[0].clientX - 50,
+            y: event.touches[0].clientY - 50,
+          };
+        }
+      }
     },
     mounted() {
       console.clear()
@@ -387,6 +429,9 @@
     object-fit: cover; 
 
     filter: saturate(75%);
+
+    -webkit-touch-callout: none; /* Disable image context menu on iOS */
+    -webkit-user-drag: none;
   }
 
   .list-container li p{
@@ -542,5 +587,18 @@
 }
 .active .hamburger path:nth-child(5) {
   transform: rotate(-45deg);
+}
+
+.circle {
+  width: 125px; /* Circle size */
+  height: 125px;
+  border-radius: 50%; /* Makes it a circle */
+  position: absolute; /* Keeps the circle above other elements */
+  z-index: 1000; /* Ensures it's on top */
+  touch-action: none; /* Prevents default touch behaviors like scrolling */
+
+  top:0px;
+  left: 0px;
+  border: 2px black solid;
 }
 </style>
