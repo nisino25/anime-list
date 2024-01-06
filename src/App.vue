@@ -336,8 +336,11 @@
 
 
       startPress(image, event) {
-        console.log('touch start');
+        
         this.pressTimer = setTimeout(() => {
+          // Disable vertical scrolling
+          document.body.style.overflowY = 'hidden';
+
           this.showCircle = true;
           console.log('1sec point');
           console.log(image)
@@ -352,6 +355,9 @@
         console.log('touch ends')
         clearTimeout(this.pressTimer);
         this.showCircle = false;
+
+        // Enable vertical scrolling again
+        document.body.style.overflowY = 'auto';
       },
       moveImage(event) {
         if (this.showCircle) {
@@ -593,7 +599,7 @@
   width: 125px; /* Circle size */
   height: 125px;
   border-radius: 50%; /* Makes it a circle */
-  position: absolute; /* Keeps the circle above other elements */
+  position: fixed; /* Keeps the circle above other elements */
   z-index: 1000; /* Ensures it's on top */
   touch-action: none; /* Prevents default touch behaviors like scrolling */
 
