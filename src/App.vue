@@ -1,6 +1,6 @@
 <template>
     <h1>Trending Anime</h1>
-    <button @click="fetchRandomAnime()" style="position: absolute; right: 0; transform: translateY(-200%);">Get Random</button>
+    <div @click="fetchRandomAnime()" style="position: absolute; right: 0; transform: translateY(-200%);" class="button">Get Random </div>
     <div v-if="fetchedData.length">
       <ul class="list-container">
         <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
@@ -26,7 +26,9 @@
 
     <div class="radial-menu">
       <div class="pie pie1" :style="getPieStyle('pie1')">
-        <div class="pie-color pie-color1"></div>
+        <div class="pie-color pie-color1">
+          <i class="fas fa-search" style="color: black;"></i>
+        </div>
       </div>
       <div class="pie pie2" :style="getPieStyle('pie2')">
         <div class="pie-color pie-color2"></div>
@@ -36,6 +38,7 @@
       </div>
       <div class="pie pie4" :style="getPieStyle('pie4')">
         <div class="pie-color pie-color4"></div>
+        <i class="fas fa-search" style="color: black;"></i>
       </div>
       <div class="menu" onclick="document.body.classList.toggle('active')" @click="toggleRotation()">
         <svg class="hamburger" xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
@@ -341,8 +344,6 @@
           
 
           this.showCircle = true;
-          console.log('1sec point');
-          console.log(image)
           this.selectedImage = image;
           this.imgPosition = {
             x: event.touches[0].clientX - 50, // Assuming circle radius 50px
@@ -402,6 +403,16 @@
   body{
     position: relative;
     overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .button{
+    background: #FB6350;
+    color: white;
+    padding: 5px 15px;
+    margin: 0px;
+    border-radius: 5px;
+    
   }
 
   .list-container{
@@ -525,6 +536,8 @@
     width: 100%;
     height: 100%;
     border-radius: 50%;
+
+    position: relative;
   }
 
   .pie-color1,.pie-color3 {
@@ -533,6 +546,18 @@
 
   .pie-color2, .pie-color4 {
     background: #FB6350;
+  }
+
+  .pie i{
+    color: black;
+    position: absolute;
+    left: 50px;
+    top: 200px;
+    transform: translate(-50%,-175%);
+    /* font-size: 10em; */
+    
+    z-index: 100000;
+    font-size: 1.5em;
   }
 
   .menu {
@@ -563,49 +588,51 @@
   }
 
   .hamburger path:nth-child(1) {
-  transform-origin: 25% 29%;
-}
-.hamburger path:nth-child(2) {
-  transform-origin: 50% 50%;
-}
-.hamburger path:nth-child(3) {
-  transform-origin: 75% 72%;
-}
-.hamburger path:nth-child(4) {
-  transform-origin: 75% 29%;
-}
-.hamburger path:nth-child(5) {
-  transform-origin: 25% 72%;
-}
-.active .pie {
-  transform: translateX(0) translateY(0);
-}
-.active .hamburger path:nth-child(1) {
-  transform: rotate(45deg);
-}
-.active .hamburger path:nth-child(2) {
-  transform: scaleX(0);
-}
-.active .hamburger path:nth-child(3) {
-  transform: rotate(45deg);
-}
-.active .hamburger path:nth-child(4) {
-  transform: rotate(-45deg);
-}
-.active .hamburger path:nth-child(5) {
-  transform: rotate(-45deg);
-}
+    transform-origin: 25% 29%;
+  }
+  .hamburger path:nth-child(2) {
+    transform-origin: 50% 50%;
+  }
+  .hamburger path:nth-child(3) {
+    transform-origin: 75% 72%;
+  }
+  .hamburger path:nth-child(4) {
+    transform-origin: 75% 29%;
+  }
+  .hamburger path:nth-child(5) {
+    transform-origin: 25% 72%;
+  }
+  .active .pie {
+    transform: translateX(0) translateY(0);
+  }
+  .active .hamburger path:nth-child(1) {
+    transform: rotate(45deg);
+  }
+  .active .hamburger path:nth-child(2) {
+    transform: scaleX(0);
+  }
+  .active .hamburger path:nth-child(3) {
+    transform: rotate(45deg);
+  }
+  .active .hamburger path:nth-child(4) {
+    transform: rotate(-45deg);
+  }
+  .active .hamburger path:nth-child(5) {
+    transform: rotate(-45deg);
+  }
 
-.circle {
-  width: 125px; /* Circle size */
-  height: 125px;
-  border-radius: 50%; /* Makes it a circle */
-  position: fixed; /* Keeps the circle above other elements */
-  z-index: 1000; /* Ensures it's on top */
-  touch-action: none; /* Prevents default touch behaviors like scrolling */
+  .circle {
+    width: 125px; /* Circle size */
+    height: 125px;
+    border-radius: 50%; /* Makes it a circle */
+    position: fixed; /* Keeps the circle above other elements */
+    z-index: 1000; /* Ensures it's on top */
+    touch-action: none; /* Prevents default touch behaviors like scrolling */
 
-  top:0px;
-  left: 0px;
-  border: 2px black solid;
-}
+    top:0px;
+    left: 0px;
+    border: 2px black solid;
+
+    transition: all .1s ease-in-out;
+  }
 </style>
