@@ -11,8 +11,8 @@
           <li data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000"  
           >
             <img :src="anime.coverImage.large" :alt="anime.title.romaji" @touchstart="startPress(anime.coverImage.large, $event)" 
-          @touchend="cancelPress"
-          @touchmove="moveImage($event)"/>
+            @touchend="cancelPress"
+            @touchmove="moveImage($event)"/>
 
             <p @click="getDetail(anime)">{{ anime.title.native }}</p>
             <div class="star-rating">
@@ -25,7 +25,7 @@
                 <!-- <span>EP:999</span> -->
             </div>
             
-        </li>
+          </li>
         </template>
       </ul>
     </div>
@@ -41,18 +41,47 @@
   </template>
 
   <template v-if="currentMode == 'search'">
-    <div class="progress-bar" :style="{ width: progressBarWidth }"></div>
+    <div v-if="!isProgressMax" class="progress-bar" :style="{ width: progressBarWidth }"></div>
     <!-- <vue-progress-bar v-if="loading"></vue-progress-bar> -->
     <div>
       <input v-model="query" placeholder="Search for Anime...">
-    <button @click="getAnime">Search</button>
+    <button @click="searchAnime">Search</button>
       <div v-if="loading">Loading...</div>
       <span v-if="searchList"><br><br>Found: {{ searchList.length }}</span>
-      <div v-for="anime in searchList" :key="anime.id">
-        <!-- {{ anime.data }} -->
+      
+
+      <ul class="binary-list-container">
+        <template v-for="(anime, index)  in searchList" :key="anime.id" >
+          <li data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000"  
+          >
+          <div class="image-container">
+            <img :src="anime.coverImage.large" :alt="anime.title.romaji" @touchstart="startPress(anime.coverImage.large, $event)" 
+            @touchend="cancelPress"
+            @touchmove="moveImage($event)"/>
+          </div>
+            
+            <div class="list-bottom">
+              <p @click="getDetail(anime)">{{ anime.title.native }}</p>
+              <span class="badge" :style="getBadgeStyle(anime.format)">{{anime.format}}</span>
+              <span v-html="fetchContentMetrics(anime)"></span><br>
+              <span v-if="anime.format !== 'MOVIE'" ><i class="fa-regular fa-calendar"></i>  {{ anime.startDate?.year }} - {{ anime.endDate?.year }}</span>
+              <span v-else ><i class="fa-regular fa-calendar"></i>  {{ anime.startDate?.year }}</span>
+
+              <div class="star-rating">
+                  <div class="stars-outer">
+                      <div class="stars-inner" :style="{ width: `${anime.averageScore}%` }"></div>
+                  </div>
+                </div>
+                
+              </div>
+              
+            
+          </li>
+        </template>
+      </ul>
+      <!-- <div v-for="anime in searchList" :key="anime.id">
         <h3>{{ anime?.title?.native }}</h3>
-        <!-- Add more details as needed -->
-      </div>
+      </div> -->
     </div>
   </template>
     
@@ -76,7 +105,7 @@
       <i class="fa-solid fa-user"></i>
     </div>
     <div></div>
-    <div class="menu" onclick="document.body.classList.toggle('active')" @click="toggleRotation()">
+    <div class="menu" @click="toggleRotation()">
       <svg class="hamburger" xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
         <g
           fill="none"
@@ -101,19 +130,6 @@
 <script>
   import AOS from 'aos'
   import 'aos/dist/aos.css'
-  import axios from 'axios';
-  // import VueProgressBar from 'vue-progressbar';
-
-// const options = {
-//   color: '#bffaf3',
-//   failedColor: '#874b4b',
-//   thickness: '5px',
-//   // ... other options
-// };
-
-
-
-
 
   export default {
     name: "TrendingAnime",
@@ -148,6 +164,7 @@
         mangaCount: 0,
 
         progressBarWidth: '0%',
+        isProgressMax: false,
 
 
       };
@@ -442,23 +459,21 @@
           };
         }
       },
-      changeMode(newMode){
-        console.log('changin mode');
+      async changeMode(newMode){
         this.currentMode = newMode
-        document.body.classList.toggle('active');
-        this.toggleRotation()
-        this.searchList = null
+        
+        setTimeout(() => {
+              document.body.classList.toggle('active');
+              this.toggleRotation()
+            }, 750); // Delay to ensure users see the progress bar hit 100%
+        
+
+        if(newMode == 'search') this.searchList = null
+        if(newMode == 'trending') this.fetchTrendingAnime()
+        
       },
 
-      async fetchAPI(data) {
-        const api = axios.create({
-          baseURL: "https://graphql.anilist.co",
-        });
-
-        return api.post("/", data);
-      },
-
-      async getAnime() {
+      async searchAnime() {
         this.loading = true;
         this.startLoading(); // Start the custom progress bar
         // this.$Progress.start();
@@ -516,6 +531,9 @@
                   large
                   color
                 }
+                format
+                duration
+                volumes
               }
             }
           }`;
@@ -526,54 +544,88 @@
           perPage: 100,
         };
 
-        let result = null;
         try {
-          result = await this.fetchAPI({ query, variables });
-          // await this.fetchAPI({ query, variables });
-          // const result = await this.fetchAPI({ query, variables });
-          this.searchList = result.data.data.Page.media
-          // console.log(this.animeList)
-          // handle the response
-        } catch (err) {
-          this.handleErrors(err);
+          const response = await fetch('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+              query,
+              variables
+            })
+          });
+          const jsonResponse = await response.json();
+          // console.log(jsonResponse)
+          // this.fetchedData = jsonResponse.data.Page.media;
+          this.searchList = jsonResponse.data.Page.media
+          console.log(this.searchList)
+          // console.table(this.fetchedData)
+        } catch (error) {
+          console.error('Error fetching data:', error);
         } finally {
-          // this.animeList = result
-          // this.$Progress.finish();
-          this.loading = false; // This will hide the progress bar
           this.loading = false;
         }
       },
 
       startLoading() {
-      this.loading = true;
-      this.progressBarWidth = '0%';
-      this.increaseProgress();
-    },
-    increaseProgress() {
-  let width = 0;
-  const interval = setInterval(() => {
-    width += 5; // Adjust the increment as needed
-    this.progressBarWidth = `${width}%`;
+        this.loading = true;
+        this.isProgressMax = false
+        this.progressBarWidth = '0%';
+        this.increaseProgress();
+      },
+      increaseProgress() {
+        let width = 0;
+        const interval = setInterval(() => {
+          width += 5; // Adjust the increment as needed
+          this.progressBarWidth = `${width}%`;
 
-    if (width >= 100) {
-      clearInterval(interval);
-      setTimeout(() => {
-        this.loading = false; // Hide the progress bar after a short delay
-        this.progressBarWidth = '0%'; // Reset the progress bar width
-      }, 500); // Delay to ensure users see the progress bar hit 100%
-    }
-  }, 100); // Adjust the interval as needed
-},
-    },
-    mounted() {
-      console.clear()
-      this.fetchTrendingAnime();
-      AOS.init();
+          if (width >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+              this.loading = false; // Hide the progress bar after a short delay
+              this.progressBarWidth = '0%'; // Reset the progress bar width
+              this.isProgressMax = true
+            }, 750); // Delay to ensure users see the progress bar hit 100%
+            
+          }
+        }, 100); // Adjust the interval as needed
+      },
 
-      this.currentMode = 'search'
+      getBadgeStyle(format){
+        let style = `background: `
+        if(format == 'TV') return style+'#66CC66;'
+        if(format == 'MOVIE') return style+'#99C0CC;'
+        if(format == 'MANGA') return style+'#B39EB5;'
+      },
 
-      // this.isMenuOpen = true
+      fetchContentMetrics(anime){
+        const format = anime.format
+        if(format == 'TV') return `EP: ${anime.episodes}`
+        if(format == 'MOVIE') {
+          if (anime.duration < 60) {
+              return "<i class='fa-regular fa-clock'></i> " + anime.duration + " min";
+          } else {
+              let hours = Math.floor(anime.duration / 60);
+              let remainingMinutes = anime.duration % 60;
+              return "<i class='fa-regular fa-clock'></i> " + hours + "h " + remainingMinutes + "m";
+          }
+        }
+        if(format == 'MANGA') return `Vol: ${anime.volumes}`
+      },
     },
+      mounted() {
+        console.clear()
+        // this.fetchTrendingAnime();
+        AOS.init();
+
+        this.currentMode = 'search'
+        // this.query = 'naruto'
+        // this.searchAnime()
+
+        // this.isMenuOpen = true
+      },
 
   };
 </script>
@@ -728,7 +780,7 @@
 
     width: 400px;
     /* transform: translateX(200px) translateY(200px); */
-    transition: all ease-in-out 400ms;
+    transition: all ease-in-out 750ms;
     /* transition: transform 500s; */
 
   }
@@ -866,7 +918,89 @@
     top: 0;
     left: 0;
     height: 5px;
-    background-color: #10b981; /* Example color */
+    background-color: #FB6350; /* Example color */
+
     transition: width 0.5s ease; /* Smooth transition for width change */
   }
+
+
+  .binary-list-container{
+    margin: 0;
+    padding: 0;
+
+    padding-inline-start: unset;
+    display: grid;
+    grid-template-columns: 48% 48%;
+    justify-content: space-between;
+    width: 95%;
+    margin: auto;
+    margin-bottom: 100px 
+  }
+
+  .binary-list-container li {
+    list-style: none;
+    border: 2px solid DimGray;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background: #E6D4D0;
+    /* box-shadow: #000; */
+    box-shadow: rgba(149, 157, 165, 0.5) 0px 8px 24px;
+
+    overflow: hidden;
+
+
+
+  }
+
+  .binary-list-container li .image-container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    aspect-ratio: 1/1;
+    overflow: hidden; 
+    position: relative;
+  }
+
+  .binary-list-container li .image-container img{
+    position: absolute;
+    top: 50%;
+    left:50%;
+    transform: translate(-50%,-50%);
+    /* max-width: 100%;
+    max-height: 100%; */
+    /* width: 100%;
+    aspect-ratio: 5/4;
+    overflow: hidden; Ensures the image stays within the bounds of the container */
+  }
+
+  .binary-list-container li .list-bottom{
+    padding: 10px 5px;
+  }
+
+  .binary-list-container li .list-bottom p{
+    margin: 0;
+    line-height: 1.5em;      /* Example line-height */
+    height: 3em;             /* Double the line-height for two lines */
+    overflow: hidden;        /* Hide any text that overflows */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    text-overflow: ellipsis; /* Add ellipsis if text overflows */
+    white-space: normal;
+  }
+
+  .binary-list-container li .list-bottom .badge {
+      padding: 5px 15px;
+      border-radius: 5px;
+      color: white;
+      font-weight: bold;
+      text-align: center;
+      font-size: 15px;
+      display: inline-block;
+      margin: 10px 10px 10px 0px;
+      /* float: right; */
+
+  }
+
 </style>
