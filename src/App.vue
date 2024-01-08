@@ -68,6 +68,7 @@
 
 </template>
 
+
 <script>
   import AOS from 'aos'
   import 'aos/dist/aos.css'
@@ -96,6 +97,7 @@
         selectedImage: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx137908-50af3lKVbst2.jpg',
         pressTimer: null,
         imgPosition: { x: 0, y: 0 },
+        lastPosition: { x: 0, y: 0 }
       };
     },
     methods: {
@@ -359,14 +361,36 @@
         // Enable vertical scrolling again
         document.body.style.overflowY = 'auto';
       },
-      moveImage(event) {
-        if (this.showCircle) {
-          // Disable vertical scrolling
-          document.body.style.overflowY = 'hidden';
+      // moveImage(event) {
+      //   if (this.showCircle) {
+      //     // Disable vertical scrolling
+      //     document.body.style.overflowY = 'hidden';
           
+      //     this.imgPosition = {
+      //       x: event.touches[0].clientX - 50,
+      //       y: event.touches[0].clientY - 50,
+      //     };
+      //   }
+      // },
+      moveImage(event) {
+        if (!this.showCircle) return;
+
+        const currentX = event.touches[0].clientX - 50;
+        const currentY = event.touches[0].clientY - 50;
+
+        if (Math.abs(currentX - this.lastPosition.x) > 5 || 
+            Math.abs(currentY - this.lastPosition.y) > 5) {
+          
+          // Update the position only if it's more than 5px different
           this.imgPosition = {
-            x: event.touches[0].clientX - 50,
-            y: event.touches[0].clientY - 50,
+            x: currentX,
+            y: currentY
+          };
+          
+          // Save the new position
+          this.lastPosition = {
+            x: currentX,
+            y: currentY
           };
         }
       }
@@ -381,7 +405,6 @@
 
   };
 </script>
-
 
 
 <style>
@@ -633,6 +656,6 @@
     left: 0px;
     border: 2px black solid;
 
-    transition: all .1s ease-in-out;
+    transition: all .01s ease-in-out;
   }
 </style>
