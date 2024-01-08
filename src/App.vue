@@ -1,5 +1,7 @@
 <template>
-    <h1>Trending Anime</h1>
+  <h1>{{currentMode }}</h1>
+  <template v-if="currentMode == 'trending'">
+    
     <div @click="fetchRandomAnime()" style="position: absolute; right: 0; transform: translateY(-200%);" class="button">Get Random </div>
     <div v-if="fetchedData.length">
       <ul class="list-container">
@@ -14,8 +16,13 @@
             <div class="star-rating">
                 <div class="stars-outer">
                     <div class="stars-inner" :style="{ width: `${anime.averageScore}%` }"></div>
+                    
+                    
                 </div>
+                <span>EP:{{ anime.episodes }}</span>
+                <!-- <span>EP:999</span> -->
             </div>
+            
         </li>
         </template>
       </ul>
@@ -24,47 +31,51 @@
       Loading...
     </div>
 
-    <div class="radial-menu">
-      <div class="pie pie1" :style="getPieStyle('pie1')">
-        <div class="pie-color pie-color1">
-          <i class="fas fa-search" style="color: black;"></i>
-        </div>
-      </div>
-      <div class="pie pie2" :style="getPieStyle('pie2')">
-        <div class="pie-color pie-color2"></div>
-      </div>
-      <div class="pie pie3" :style="getPieStyle('pie3')">
-        <div class="pie-color pie-color3"></div>
-      </div>
-      <div class="pie pie4" :style="getPieStyle('pie4')">
-        <div class="pie-color pie-color4"></div>
-        <i class="fas fa-search" style="color: black;"></i>
-      </div>
-      <div class="menu" onclick="document.body.classList.toggle('active')" @click="toggleRotation()">
-        <svg class="hamburger" xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
-          <g
-            fill="none"
-            stroke="#000"
-            stroke-width="7.999"
-            stroke-linecap="round"
-          >
-            <path d="M 55,26.000284 L 24.056276,25.999716" />
-            <path d="M 24.056276,49.999716 L 75.943724,50.000284" />
-            <path d="M 45,73.999716 L 75.943724,74.000284" />
-            <path d="M 75.943724,26.000284 L 45,25.999716" />
-            <path d="M 24.056276,73.999716 L 55,74.000284" />
-          </g>
-        </svg>
-    </div>
-
     <div v-if="showCircle" 
          :style="{ background: `url(${selectedImage}) center/cover`, 
                    transform: `translate(${imgPosition.x}px, ${imgPosition.y}px)` }" 
          class="circle"
     ></div>
-    <!-- <div :style="{ background: `url(${selectedImage}) center/cover`, transform: `translate(${imgPosition.x}px, ${imgPosition.y}px)` }" class="circle">
-    </div> -->
+  </template>
+    
+
+  <div class="radial-menu">
+    <div class="pie pie1" :style="getPieStyle('pie1','search')" @click="changeMode('search')">
+      <div class="pie-color pie-color1">
+        <i class="fas fa-search" style="color: black;"></i>
+      </div>
     </div>
+    <div class="pie pie2" :style="getPieStyle('pie2','myList')" @click="changeMode('myList')">
+      <div class="pie-color pie-color2"></div>
+      <i class="fa-solid fa-star"></i>
+    </div>
+    <div class="pie pie3" :style="getPieStyle('pie3','trending')" @click="changeMode('trending')">
+      <div class="pie-color pie-color3"></div>
+      <i class="fa-solid fa-fire-flame-curved"></i>
+    </div>
+    <div class="pie pie4" :style="getPieStyle('pie4','profile')" @click="changeMode('profile')">
+      <div class="pie-color pie-color4"></div>
+      <i class="fa-solid fa-user"></i>
+    </div>
+    <div></div>
+    <div class="menu" onclick="document.body.classList.toggle('active')" @click="toggleRotation()">
+      <svg class="hamburger" xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+        <g
+          fill="none"
+          stroke="#000"
+          stroke-width="7.999"
+          stroke-linecap="round"
+        >
+          <path d="M 55,26.000284 L 24.056276,25.999716" />
+          <path d="M 24.056276,49.999716 L 75.943724,50.000284" />
+          <path d="M 45,73.999716 L 75.943724,74.000284" />
+          <path d="M 75.943724,26.000284 L 45,25.999716" />
+          <path d="M 24.056276,73.999716 L 55,74.000284" />
+        </g>
+      </svg>
+    </div>
+
+  </div>
 
 </template>
 
@@ -78,6 +89,7 @@
     name: "TrendingAnime",
     data() {
       return {
+        currentMode: 'trending',
         fetchedData: [],
         loading: false,
         testNum: 3,
@@ -97,7 +109,9 @@
         selectedImage: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx137908-50af3lKVbst2.jpg',
         pressTimer: null,
         imgPosition: { x: 0, y: 0 },
-        lastPosition: { x: 0, y: 0 }
+        lastPosition: { x: 0, y: 0 },
+
+
       };
     },
     methods: {
@@ -320,11 +334,23 @@
       },
 
       // menu option -----------
-      getPieStyle(className) {
-        return {
-          transform: `rotate(${this.rotations[className]}deg)`
-        };
-      },
+      // getPieStyle(className) {
+      //   return {
+      //     transform: `rotate(${this.rotations[className]}deg)`
+      //   };
+      // },
+
+      getPieStyle(className, mode) {
+    let style = {
+        transform: `rotate(${this.rotations[className]}deg)`
+    };
+
+    if (mode === this.currentMode) {
+        style.background = '#FB6350';
+    }
+
+    return style;
+},
       toggleRotation() {
         if(!this.isMenuOpen){
           Object.keys(this.rotations).forEach((className) => {
@@ -377,9 +403,10 @@
 
         const currentX = event.touches[0].clientX - 50;
         const currentY = event.touches[0].clientY - 50;
+        console.log(currentX,currentY)
 
-        if (Math.abs(currentX - this.lastPosition.x) > 5 || 
-            Math.abs(currentY - this.lastPosition.y) > 5) {
+        if (Math.abs(currentX - this.lastPosition.x) > 1 || 
+            Math.abs(currentY - this.lastPosition.y) > 1) {
           
           // Update the position only if it's more than 5px different
           this.imgPosition = {
@@ -393,7 +420,13 @@
             y: currentY
           };
         }
-      }
+      },
+      changeMode(newMode){
+        console.log('changin mode');
+        this.currentMode = newMode
+        document.body.classList.toggle('active');
+        this.toggleRotation()
+      },
     },
     mounted() {
       console.clear()
@@ -491,9 +524,9 @@
   }
 
   .star-rating {
-    font-size: 15px;
+    font-size: 13.5px;
     color: Charcoal;
-    margin: 10px 0px 20px;
+    margin: 10px 5px 20px 0px;
     line-height: 1;
   }
 
@@ -502,6 +535,7 @@
     position: relative;
     unicode-bidi: bidi-override;
   }
+  
 
   .stars-outer::before {
     content: '★★★★★';
@@ -519,6 +553,13 @@
 
   .stars-inner::before {
     content: '★★★★★';
+  }
+
+  .star-rating span{
+    line-height: 13.5px;
+    font-size: 12px;
+    position: absolute;
+    right: 0;
   }
 
   /* radial menu ----------------- */
@@ -539,15 +580,21 @@
     bottom: 0px;
 
     clip-path: polygon(200px 200px, 0 200px, 0px 123.46px);
-    clip-path: polygon(200px 200px, 0 200px, 0px 117px);
+    clip-path: polygon(200px 200px, 0 200px, 0px 116px);
+
+    /* border: 2px solid black; */
 
     right: -200px;
     bottom: -200px;
 
     width: 400px;
     /* transform: translateX(200px) translateY(200px); */
-    transition: transform 400ms;
+    transition: all ease-in-out 400ms;
+    /* transition: transform 500s; */
+
   }
+
+
   .pie-color:hover {
     opacity: 0.85;
   }
@@ -561,14 +608,16 @@
     border-radius: 50%;
 
     position: relative;
+    
   }
 
-  .pie-color1,.pie-color3 {
+  .pie1,.pie3{
     background: white;
+    /* border: 2px solid black; */
   }
 
-  .pie-color2, .pie-color4 {
-    background: #FB6350;
+  .pie2, .pie4 {
+    background: 	#E8E8E8;
   }
 
   .pie i{
@@ -581,6 +630,18 @@
     
     z-index: 100000;
     font-size: 1.5em;
+  }
+
+  .pie2 i{
+    transform: translate(-50%, -175%) rotate(-22.5deg) !important;
+  }
+
+  .pie3 i{
+    transform: translate(-50%, -175%) rotate(-45deg) !important;
+  }
+
+  .pie4 i{
+    transform: translate(-50%, -175%) rotate(-67.5deg) !important;
   }
 
   .menu {
@@ -656,6 +717,6 @@
     left: 0px;
     border: 2px black solid;
 
-    transition: all .01s ease-in-out;
+    transition: all .05s ease-in-out;
   }
 </style>
