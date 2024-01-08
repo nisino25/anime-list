@@ -9,8 +9,10 @@
   },
   "dependencies": {
     "aos": "^2.3.4",
+    "axios": "^1.6.5",
     "core-js": "^3.8.3",
     "vue": "^3.2.13",
+    "vue-progressbar": "^0.7.5",
     "vuedraggable": "^2.24.3"
   },
   "devDependencies": {

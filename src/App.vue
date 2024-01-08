@@ -1,5 +1,7 @@
 <template>
+
   <h1>{{currentMode }}</h1>
+
   <template v-if="currentMode == 'trending'">
     
     <div @click="fetchRandomAnime()" style="position: absolute; right: 0; transform: translateY(-200%);" class="button">Get Random </div>
@@ -36,6 +38,22 @@
                    transform: `translate(${imgPosition.x}px, ${imgPosition.y}px)` }" 
          class="circle"
     ></div>
+  </template>
+
+  <template v-if="currentMode == 'search'">
+    <div class="progress-bar" :style="{ width: progressBarWidth }"></div>
+    <!-- <vue-progress-bar v-if="loading"></vue-progress-bar> -->
+    <div>
+      <input v-model="query" placeholder="Search for Anime...">
+    <button @click="getAnime">Search</button>
+      <div v-if="loading">Loading...</div>
+      <span v-if="searchList"><br><br>Found: {{ searchList.length }}</span>
+      <div v-for="anime in searchList" :key="anime.id">
+        <!-- {{ anime.data }} -->
+        <h3>{{ anime?.title?.native }}</h3>
+        <!-- Add more details as needed -->
+      </div>
+    </div>
   </template>
     
 
@@ -83,6 +101,18 @@
 <script>
   import AOS from 'aos'
   import 'aos/dist/aos.css'
+  import axios from 'axios';
+  // import VueProgressBar from 'vue-progressbar';
+
+// const options = {
+//   color: '#bffaf3',
+//   failedColor: '#874b4b',
+//   thickness: '5px',
+//   // ... other options
+// };
+
+
+
 
 
   export default {
@@ -110,6 +140,14 @@
         pressTimer: null,
         imgPosition: { x: 0, y: 0 },
         lastPosition: { x: 0, y: 0 },
+
+        query: '',
+        searchList: null,
+        totalResults: 0,
+        animeCount: 0,
+        mangaCount: 0,
+
+        progressBarWidth: '0%',
 
 
       };
@@ -333,24 +371,17 @@
         }
       },
 
-      // menu option -----------
-      // getPieStyle(className) {
-      //   return {
-      //     transform: `rotate(${this.rotations[className]}deg)`
-      //   };
-      // },
-
       getPieStyle(className, mode) {
-    let style = {
-        transform: `rotate(${this.rotations[className]}deg)`
-    };
+          let style = {
+              transform: `rotate(${this.rotations[className]}deg)`
+          };
 
-    if (mode === this.currentMode) {
-        style.background = '#FB6350';
-    }
+          if (mode === this.currentMode) {
+              style.background = '#FB6350';
+          }
 
-    return style;
-},
+          return style;
+      },
       toggleRotation() {
         if(!this.isMenuOpen){
           Object.keys(this.rotations).forEach((className) => {
@@ -387,19 +418,9 @@
         // Enable vertical scrolling again
         document.body.style.overflowY = 'auto';
       },
-      // moveImage(event) {
-      //   if (this.showCircle) {
-      //     // Disable vertical scrolling
-      //     document.body.style.overflowY = 'hidden';
-          
-      //     this.imgPosition = {
-      //       x: event.touches[0].clientX - 50,
-      //       y: event.touches[0].clientY - 50,
-      //     };
-      //   }
-      // },
       moveImage(event) {
         if (!this.showCircle) return;
+        document.body.style.overflowY = 'hidden';
 
         const currentX = event.touches[0].clientX - 50;
         const currentY = event.touches[0].clientY - 50;
@@ -426,12 +447,130 @@
         this.currentMode = newMode
         document.body.classList.toggle('active');
         this.toggleRotation()
+        this.searchList = null
       },
+
+      async fetchAPI(data) {
+        const api = axios.create({
+          baseURL: "https://graphql.anilist.co",
+        });
+
+        return api.post("/", data);
+      },
+
+      async getAnime() {
+        this.loading = true;
+        this.startLoading(); // Start the custom progress bar
+        // this.$Progress.start();
+
+        const query = `
+          query ($id: Int, $page: Int, $perPage: Int, $search: String) {
+            Page(page: $page, perPage: $perPage) {
+              pageInfo {
+                total
+                currentPage
+                lastPage
+                hasNextPage
+                perPage
+              }
+              media(id: $id, search: $search, sort: POPULARITY_DESC) {
+                id
+                idMal
+                title {
+                  romaji
+                  english
+                  native
+                }
+                type
+                endDate {
+                  year
+                  month
+                  day
+                }
+                startDate {
+                  year
+                  month
+                  day
+                }
+                studios(isMain: true) {
+                  nodes {
+                    name
+                  }
+                }
+                isAdult
+                source
+                genres
+                volumes
+                episodes
+                chapters
+                siteUrl
+                status
+                averageScore
+                meanScore
+                popularity
+                description
+                favourites
+                coverImage {
+                  extraLarge
+                  medium
+                  large
+                  color
+                }
+              }
+            }
+          }`;
+
+        const variables = {
+          search: this.query,
+          page: 1,
+          perPage: 100,
+        };
+
+        let result = null;
+        try {
+          result = await this.fetchAPI({ query, variables });
+          // await this.fetchAPI({ query, variables });
+          // const result = await this.fetchAPI({ query, variables });
+          this.searchList = result.data.data.Page.media
+          // console.log(this.animeList)
+          // handle the response
+        } catch (err) {
+          this.handleErrors(err);
+        } finally {
+          // this.animeList = result
+          // this.$Progress.finish();
+          this.loading = false; // This will hide the progress bar
+          this.loading = false;
+        }
+      },
+
+      startLoading() {
+      this.loading = true;
+      this.progressBarWidth = '0%';
+      this.increaseProgress();
+    },
+    increaseProgress() {
+  let width = 0;
+  const interval = setInterval(() => {
+    width += 5; // Adjust the increment as needed
+    this.progressBarWidth = `${width}%`;
+
+    if (width >= 100) {
+      clearInterval(interval);
+      setTimeout(() => {
+        this.loading = false; // Hide the progress bar after a short delay
+        this.progressBarWidth = '0%'; // Reset the progress bar width
+      }, 500); // Delay to ensure users see the progress bar hit 100%
+    }
+  }, 100); // Adjust the interval as needed
+},
     },
     mounted() {
       console.clear()
       this.fetchTrendingAnime();
       AOS.init();
+
+      this.currentMode = 'search'
 
       // this.isMenuOpen = true
     },
@@ -718,5 +857,16 @@
     border: 2px black solid;
 
     transition: all .05s ease-in-out;
+  }
+
+
+
+  .progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 5px;
+    background-color: #10b981; /* Example color */
+    transition: width 0.5s ease; /* Smooth transition for width change */
   }
 </style>
