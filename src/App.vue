@@ -64,14 +64,25 @@
               <p @click="getDetail(anime)">{{ anime.title.native }}</p>
               <span class="badge" :style="getBadgeStyle(anime.format)">{{anime.format}}</span>
               <span v-html="fetchContentMetrics(anime)"></span><br>
-              <span v-if="anime.format !== 'MOVIE'" ><i class="fa-regular fa-calendar"></i>  {{ anime.startDate?.year }} - {{ anime.endDate?.year }}</span>
-              <span v-else ><i class="fa-regular fa-calendar"></i>  {{ anime.startDate?.year }}</span>
+
+              <template v-for="(genre,index)  in anime.genres" :key="index" >
+                <span v-if="index<2" class="badge" :style="getBadgeStyle(genre)">{{genre}}</span>
+              </template>
+
+              <span class="duration" v-if="anime.format !== 'MOVIE'" ><i class="fa-regular fa-calendar"></i>  {{ anime.startDate?.year }} - {{ anime.endDate?.year }}</span>
+              <span class="duration" v-else ><i class="fa-regular fa-calendar"></i>  {{ anime.startDate?.year }}</span>
 
               <div class="star-rating">
-                  <div class="stars-outer">
-                      <div class="stars-inner" :style="{ width: `${anime.averageScore}%` }"></div>
-                  </div>
+                <div class="stars-outer">
+                  <div class="stars-inner" :style="{ width: `${anime.averageScore}%` }"></div>
                 </div>
+                <div class="favorite-counter"><i class="fa-solid fa-star"></i>{{ getAnimeFavourites(anime.favourites) }}</div>
+                
+              </div>
+              
+              
+
+              <span class="description" v-html="anime.description" @click="anime.showingDetail = !anime.showingDetail" :class="{ showingDetail: anime.showingDetail }"></span>
                 
               </div>
               
@@ -84,6 +95,23 @@
       </div> -->
     </div>
   </template>
+
+  <template v-if="currentMode == 'popular'">
+    <div v-if="!isProgressMax" class="progress-bar" :style="{ width: progressBarWidth }"></div>
+    <ul class="single-row-list-container">
+        <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
+          <li>
+            <div class="image-container">
+              <img :src="anime.coverImage.medium" :alt="anime.title.romaji" @touchstart="startPress(anime.coverImage.large, $event)" 
+              @touchend="cancelPress"
+              @touchmove="moveImage($event)"/>
+            </div>
+            No.{{ index+1 }}. {{ anime.title.native }}. <span style="float: right;">{{ getAnimeFavourites(anime.favourites) }}</span>
+          </li>
+        </template>
+    </ul>
+    <div @click="fetchPopularAnime()" style="position: absolute; left: 0; transform: translateY(0%);margin-bottom: 50px; display: block;" class="button">Get More </div>
+  </template>
     
 
   <div class="radial-menu">
@@ -92,7 +120,7 @@
         <i class="fas fa-search" style="color: black;"></i>
       </div>
     </div>
-    <div class="pie pie2" :style="getPieStyle('pie2','myList')" @click="changeMode('myList')">
+    <div class="pie pie2" :style="getPieStyle('pie2','popular')" @click="changeMode('popular')">
       <div class="pie-color pie-color2"></div>
       <i class="fa-solid fa-star"></i>
     </div>
@@ -165,6 +193,8 @@
 
         progressBarWidth: '0%',
         isProgressMax: false,
+
+        popularPage: 1,
 
 
       };
@@ -405,12 +435,29 @@
             this.rotations[className] += 90;
           });
           this.isMenuOpen = true
+          document.body.classList.toggle('active');
         }else{
           Object.keys(this.rotations).forEach((className) => {
             this.rotations[className] -= 90;
           });
           this.isMenuOpen = false
+          document.body.classList.toggle('active');
         }
+      },
+      async changeMode(newMode){
+        this.currentMode = newMode;
+        this.fetchedData = [];
+        
+        setTimeout(() => {
+              this.toggleRotation()
+              
+            }, 750); // Delay to ensure users see the progress bar hit 100%
+        
+
+        if(newMode == 'search') this.searchList = null
+        if(newMode == 'trending') this.fetchTrendingAnime()
+        if(newMode == 'popular') this.fetchPopularAnime()
+        
       },
 
 
@@ -459,19 +506,7 @@
           };
         }
       },
-      async changeMode(newMode){
-        this.currentMode = newMode
-        
-        setTimeout(() => {
-              document.body.classList.toggle('active');
-              this.toggleRotation()
-            }, 750); // Delay to ensure users see the progress bar hit 100%
-        
-
-        if(newMode == 'search') this.searchList = null
-        if(newMode == 'trending') this.fetchTrendingAnime()
-        
-      },
+      
 
       async searchAnime() {
         this.loading = true;
@@ -595,9 +630,16 @@
 
       getBadgeStyle(format){
         let style = `background: `
-        if(format == 'TV') return style+'#66CC66;'
-        if(format == 'MOVIE') return style+'#99C0CC;'
-        if(format == 'MANGA') return style+'#B39EB5;'
+        if(format == 'TV') {
+          return style+'#66CC66;'
+        }else if(format == 'MOVIE') {
+          return style+'#99C0CC;'
+        }else if(format == 'MANGA')
+        {
+          return style+'#B39EB5;'
+        }else{
+          return style+'#A0A0A0;'
+        }
       },
 
       fetchContentMetrics(anime){
@@ -614,15 +656,117 @@
         }
         if(format == 'MANGA') return `Vol: ${anime.volumes}`
       },
+
+      getAnimeFavourites(num) {
+          // If the number is less than 100, return it as it is
+          if (num < 100) {
+              return num;
+          }
+          // If the number is 100 or more, divide by 1000 and append 'k'
+          else {
+              return (num / 1000).toFixed(1) + 'k';
+          }
+      },
+
+      async fetchPopularAnime() {
+        this.loading = true;
+        this.startLoading(); // Start the custom progress bar
+        // this.$Progress.start();
+        const query = `
+          query ($page: Int, $perPage: Int) {
+            Page(page: $page, perPage: $perPage) {
+              media(type: ANIME, sort: POPULARITY_DESC) {
+              id
+              idMal
+              title {
+                romaji
+                english
+                native
+              }
+              type
+              endDate {
+                year
+                month
+                day
+              }
+              startDate {
+                year
+                month
+                day
+              }
+              studios(isMain: true) {
+                nodes {
+                  name
+                }
+              }
+              isAdult
+              source
+              genres
+              volumes
+              episodes
+              chapters
+              siteUrl
+              status
+              averageScore
+              meanScore
+              popularity
+              description
+              favourites
+              coverImage {
+                extraLarge
+                medium
+                large
+                color
+              }
+
+                
+              }
+            }
+          }
+        `;
+        // studios
+        // endDate
+
+        const variables = {
+          page: this.popularPage,
+          perPage: 18
+        };
+
+        console.log(this.popularPage)
+        this.popularPage++
+
+        try {
+          const response = await fetch('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+              query,
+              variables
+            })
+          });
+          const jsonResponse = await response.json();
+          // this.fetchedData = jsonResponse.data.Page.media;
+          this.fetchedData = this.fetchedData.concat(jsonResponse.data.Page.media);
+
+          console.log(this.fetchedData)
+        } catch (error) {
+          console.error('Error fetching data:', error);
+        } finally {
+          this.loading = false;
+        }
+      },
     },
       mounted() {
         console.clear()
         // this.fetchTrendingAnime();
         AOS.init();
 
-        this.currentMode = 'search'
-        // this.query = 'naruto'
-        // this.searchAnime()
+        this.currentMode = 'popular'
+        this.query = 'my hero'
+        this.fetchPopularAnime()
 
         // this.isMenuOpen = true
       },
@@ -719,6 +863,7 @@
     color: Charcoal;
     margin: 10px 5px 20px 0px;
     line-height: 1;
+    position: relative;
   }
 
   .stars-outer {
@@ -937,6 +1082,8 @@
     margin-bottom: 100px 
   }
 
+  
+
   .binary-list-container li {
     list-style: none;
     border: 2px solid DimGray;
@@ -947,6 +1094,8 @@
     box-shadow: rgba(149, 157, 165, 0.5) 0px 8px 24px;
 
     overflow: hidden;
+
+    transition: all 2s ease; 
 
 
 
@@ -960,6 +1109,7 @@
     aspect-ratio: 1/1;
     overflow: hidden; 
     position: relative;
+    /* border-bottom: 2px solid DimGray; */
   }
 
   .binary-list-container li .image-container img{
@@ -975,11 +1125,11 @@
   }
 
   .binary-list-container li .list-bottom{
-    padding: 10px 5px;
+    padding: 10px 7.5px;
   }
 
   .binary-list-container li .list-bottom p{
-    margin: 0;
+    margin: 0 0 2.5px;
     line-height: 1.5em;      /* Example line-height */
     height: 3em;             /* Double the line-height for two lines */
     overflow: hidden;        /* Hide any text that overflows */
@@ -991,16 +1141,90 @@
   }
 
   .binary-list-container li .list-bottom .badge {
-      padding: 5px 15px;
+      padding: 3px 12.5px;
       border-radius: 5px;
       color: white;
       font-weight: bold;
       text-align: center;
-      font-size: 15px;
+      font-size: 12.5px;
       display: inline-block;
-      margin: 10px 10px 10px 0px;
+      margin: 5px 10px 5px 0px;
       /* float: right; */
+  }
 
+  .binary-list-container li .list-bottom .duration{
+    margin-top: 7.5px;
+    display: block;
+  }
+
+  /* .binary-list-container li .list-bottom .star-rating{
+    margin-bottom: 5px;
+  } */
+
+  .binary-list-container li .list-bottom .description{
+    transition: all 2s ease; 
+    margin: 0;
+    line-height: 1.5em;      /* Example line-height */
+    max-height: 4.5em;             /* Double the line-height for two lines */
+    overflow: hidden;        /* Hide any text that overflows */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    text-overflow: ellipsis; /* Add ellipsis if text overflows */
+    white-space: normal;
+  }
+
+  .binary-list-container li .list-bottom .showingDetail{
+    max-height: 150em; /* Set it to 'auto' to smoothly expand */
+    overflow: hidden;
+    -webkit-line-clamp: initial; /* Reset the line clamp */
+    -webkit-box-orient: initial; /* Reset the box orientation */
+    text-overflow: initial; /* Reset text overflow */
+    white-space: initial; /* Reset white space */
+  }
+
+  .favorite-counter{
+    position: absolute;
+    top: 0px;
+    right: 0;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+  }
+
+  .favorite-counter i {
+    color: 	#FF8C00;
+    margin-right: 2.5px;
+    transform: translateY(-1.5px);
+  }
+
+
+  .single-row-list-container{
+    margin: 0;
+    margin-bottom: 50px;
+    padding-left: 0;
+    list-style: none;
+  }
+
+  .single-row-list-container li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 2px solid black;
+    margin: 10px auto;
+  }
+
+  .single-row-list-container .image-container{
+
+  }
+
+  .single-row-list-container li img{
+    height: 100px;
+    margin: 0;
+    margin-right: 10px;
+
+    display: block; /* Set the image to display as a block element */
+    vertical-align: bottom;
   }
 
 </style>
