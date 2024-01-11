@@ -10,8 +10,8 @@
         <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
           <li data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000"  
           >
-            <img :src="anime.coverImage.large" :alt="anime.title.romaji" @touchstart="startPress(anime.coverImage.large, $event)" 
-            @touchend="cancelPress"
+            <img :src="anime.coverImage.large" :alt="anime.title.romaji" @touchstart="startPress(anime, $event)" 
+            @touchend="cancelPress($event)"
             @touchmove="moveImage($event)"/>
 
             <p @click="getDetail(anime)">{{ anime.title.native }}</p>
@@ -33,11 +33,7 @@
       Loading...
     </div>
 
-    <div v-if="showCircle" 
-         :style="{ background: `url(${selectedImage}) center/cover`, 
-                   transform: `translate(${imgPosition.x}px, ${imgPosition.y}px)` }" 
-         class="circle"
-    ></div>
+    
   </template>
 
   <template v-if="currentMode == 'search'">
@@ -55,7 +51,7 @@
           <li data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000"  
           >
           <div class="image-container">
-            <img :src="anime.coverImage.large" :alt="anime.title.romaji" @touchstart="startPress(anime.coverImage.large, $event)" 
+            <img :src="anime.coverImage.large" :alt="anime.title.romaji" @touchstart="startPress(anime, $event)" 
             @touchend="cancelPress"
             @touchmove="moveImage($event)"/>
           </div>
@@ -102,7 +98,7 @@
         <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
           <li data-aos="fade-up">
             <div class="image-container">
-              <img :src="anime.coverImage.medium" :alt="anime.title.romaji" @touchstart="startPress(anime.coverImage.large, $event)" 
+              <img :src="anime.coverImage.medium" :alt="anime.title.romaji" @touchstart="startPress(anime, $event)" 
               @touchend="cancelPress"
               @touchmove="moveImage($event)"/>
             </div>
@@ -127,7 +123,7 @@
           <li data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000"  
           >
           <div class="image-container">
-            <img :src="anime.coverImage.large" :alt="anime.title.romaji" @touchstart="startPress(anime.coverImage.large, $event)" 
+            <img :src="anime.coverImage.large" :alt="anime.title.romaji" @touchstart="startPress(anime, $event)" 
             @touchend="cancelPress"
             @touchmove="moveImage($event)"/>
           </div>
@@ -167,6 +163,20 @@
       </div> -->
     </div>
   </template>
+
+  <div v-if="showModal" class="modal">
+    <div id="center-area" class="area">Center</div>
+    <div id="top-area" class="area">Top</div>
+    <div id="right-area" class="area">Right</div>
+    <div id="bottom-area" class="area">Bottom</div>
+    <div id="left-area" class="area">Left</div>
+  </div>
+
+  <div v-if="showCircle" 
+         :style="{ background: `url(${selectedImage}) center/cover`, 
+                   transform: `translate(${imgPosition.x}px, ${imgPosition.y}px)` }" 
+         class="circle"
+    ></div>
     
 
   <div class="radial-menu">
@@ -235,10 +245,13 @@
         },
 
         showCircle: false,
-        selectedImage: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx137908-50af3lKVbst2.jpg',
+        selectedImage: null,
+        selectedAnime: null,
         pressTimer: null,
         imgPosition: { x: 0, y: 0 },
         lastPosition: { x: 0, y: 0 },
+
+        showModal: false,
 
         query: '',
         searchList: null,
@@ -525,35 +538,61 @@
       },
 
 
-      startPress(image, event) {
+      startPress(anime, event) {
         
         this.pressTimer = setTimeout(() => {
           
 
           this.showCircle = true;
-          this.selectedImage = image;
+          this.showModal = true;
+          this.selectedImage = anime.coverImage.large;
+          this.selectedAnimeId = anime.id
+          document.body.style.overflowY = 'hidden';
           this.imgPosition = {
             x: event.touches[0].clientX - 50, // Assuming circle radius 50px
             y: event.touches[0].clientY - 50,
           };
         }, 1000); // 1 second
       },
-      cancelPress() {
+      cancelPress(event) {
         console.log('touch ends')
         document.body.style.overflowY = 'auto';
         clearTimeout(this.pressTimer);
         this.showCircle = false;
+        this.showModal = false;
+
+
+        // Get the touch end position
+        const touchEndX = event.changedTouches[0].clientX;
+        const touchEndY = event.changedTouches[0].clientY;
+
+        // Get the right area element and its position
+        const rightArea = document.getElementById('right-area');
+        const rect = rightArea.getBoundingClientRect();
+
+        // Check if the touch end is within the right area
+        if (
+          touchEndX >= rect.left && 
+          touchEndX <= rect.right && 
+          touchEndY >= rect.top && 
+          touchEndY <= rect.bottom
+        ) {
+          // Actions to perform if touch ends in the right area
+          console.log('Touch ended in right area');
+          this.animeIds.push(this.selectedAnimeId)
+          // ... Your specific logic here ...
+        }
 
         // Enable vertical scrolling again
         
       },
       moveImage(event) {
         if (!this.showCircle) return;
-        document.body.style.overflowY = 'hidden';
+        
 
         const currentX = event.touches[0].clientX - 50;
         const currentY = event.touches[0].clientY - 50;
-        console.log(currentX,currentY)
+        // console.log(currentX,currentY)
 
         if (Math.abs(currentX - this.lastPosition.x) > 1 || 
             Math.abs(currentY - this.lastPosition.y) > 1) {
@@ -825,6 +864,7 @@
       },
 
       async fetchAnimeList() {
+        if(this.animeIds.length < 1) return
         this.loading = true;
         this.startLoading(); // Assuming you have a custom progress bar method
 
@@ -914,7 +954,7 @@
       this.currentMode = 'trending'
       // this.fetchPopularAnime()
       
-      this.animeIds =[16498,113415,11061]
+      // this.animeIds =[16498,113415,11061]
       // this.fetchAnimeList()
 
       // this.isMenuOpen = true
@@ -1375,5 +1415,42 @@
     display: block; /* Set the image to display as a block element */
     vertical-align: bottom;
   }
+
+
+
+  /* ------------------- */
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.5s; /* Smooth fade-in effect */
+  }
+
+  .area {
+    position: absolute;
+    display: block;
+    width: 100px;
+    aspect-ratio: 2/3;
+    background: white;
+    /* Additional styling for each area */
+  }
+
+  #center-area { /* Center area styling */ }
+  #top-area { top: 0; /* Top area styling */ }
+  #right-area { right: 0; /* Right area styling */ }
+  #bottom-area { bottom: 0; /* Bottom area styling */ }
+  #left-area { left: 0; /* Left area styling */ }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
 
 </style>
