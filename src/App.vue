@@ -47,11 +47,11 @@
       <input v-model="query" placeholder="Search for Anime...">
     <button @click="searchAnime">Search</button>
       <div v-if="loading">Loading...</div>
-      <span v-if="searchList"><br><br>Found: {{ searchList.length }}</span>
+      <span v-if="fetchedData"><br><br>Found: {{ fetchedData.length }}</span>
       
 
       <ul class="binary-list-container">
-        <template v-for="(anime, index)  in searchList" :key="anime.id" >
+        <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
           <li data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000"  
           >
           <div class="image-container">
@@ -100,7 +100,7 @@
     <div v-if="!isProgressMax" class="progress-bar" :style="{ width: progressBarWidth }"></div>
     <ul class="single-row-list-container">
         <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
-          <li>
+          <li data-aos="fade-up">
             <div class="image-container">
               <img :src="anime.coverImage.medium" :alt="anime.title.romaji" @touchstart="startPress(anime.coverImage.large, $event)" 
               @touchend="cancelPress"
@@ -111,6 +111,61 @@
         </template>
     </ul>
     <div @click="fetchPopularAnime()" style="position: absolute; left: 0; transform: translateY(0%);margin-bottom: 50px; display: block;" class="button">Get More </div>
+  </template>
+
+  <template v-if="currentMode == 'profile'">
+    <div v-if="!isProgressMax" class="progress-bar" :style="{ width: progressBarWidth }"></div>
+    <!-- <vue-progress-bar v-if="loading"></vue-progress-bar> -->
+    <div>
+      <h2>My anime list</h2>
+      <div v-if="loading">Loading...</div>
+      <span v-if="fetchedData"><br><br>Found: {{ fetchedData.length }}</span>
+      
+
+      <ul class="binary-list-container">
+        <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
+          <li data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000"  
+          >
+          <div class="image-container">
+            <img :src="anime.coverImage.large" :alt="anime.title.romaji" @touchstart="startPress(anime.coverImage.large, $event)" 
+            @touchend="cancelPress"
+            @touchmove="moveImage($event)"/>
+          </div>
+            
+            <div class="list-bottom">
+              <p @click="getDetail(anime)">{{ anime.title.native }}</p>
+              <span class="badge" :style="getBadgeStyle(anime.format)">{{anime.format}}</span>
+              <span v-html="fetchContentMetrics(anime)"></span><br>
+
+              <template v-for="(genre,index)  in anime.genres" :key="index" >
+                <span v-if="index<2" class="badge" :style="getBadgeStyle(genre)">{{genre}}</span>
+              </template>
+
+              <span class="duration" v-if="anime.format !== 'MOVIE'" ><i class="fa-regular fa-calendar"></i>  {{ anime.startDate?.year }} - {{ anime.endDate?.year }}</span>
+              <span class="duration" v-else ><i class="fa-regular fa-calendar"></i>  {{ anime.startDate?.year }}</span>
+
+              <div class="star-rating">
+                <div class="stars-outer">
+                  <div class="stars-inner" :style="{ width: `${anime.averageScore}%` }"></div>
+                </div>
+                <div class="favorite-counter"><i class="fa-solid fa-star"></i>{{ getAnimeFavourites(anime.favourites) }}</div>
+                
+              </div>
+              
+              
+
+              <span class="description" v-html="anime.description" @click="anime.showingDetail = !anime.showingDetail" :class="{ showingDetail: anime.showingDetail }"></span>
+                
+              </div>
+              
+            
+          </li>
+        </template>
+      </ul>
+      <!-- <div v-for="anime in searchList" :key="anime.id">
+        <h3>{{ anime?.title?.native }}</h3>
+      </div> -->
+    </div>
   </template>
     
 
@@ -195,6 +250,8 @@
         isProgressMax: false,
 
         popularPage: 1,
+
+        animeIds: [],
 
 
       };
@@ -456,7 +513,14 @@
 
         if(newMode == 'search') this.searchList = null
         if(newMode == 'trending') this.fetchTrendingAnime()
-        if(newMode == 'popular') this.fetchPopularAnime()
+        if(newMode == 'popular') {
+          this.popularPage =1
+          this.fetchPopularAnime()
+        }
+
+        if(newMode == 'profile') {
+          this.fetchAnimeList()
+        }
         
       },
 
@@ -476,11 +540,12 @@
       },
       cancelPress() {
         console.log('touch ends')
+        document.body.style.overflowY = 'auto';
         clearTimeout(this.pressTimer);
         this.showCircle = false;
 
         // Enable vertical scrolling again
-        document.body.style.overflowY = 'auto';
+        
       },
       moveImage(event) {
         if (!this.showCircle) return;
@@ -594,7 +659,7 @@
           const jsonResponse = await response.json();
           // console.log(jsonResponse)
           // this.fetchedData = jsonResponse.data.Page.media;
-          this.searchList = jsonResponse.data.Page.media
+          this.fetchedData = jsonResponse.data.Page.media
           console.log(this.searchList)
           // console.table(this.fetchedData)
         } catch (error) {
@@ -758,18 +823,102 @@
           this.loading = false;
         }
       },
+
+      async fetchAnimeList() {
+        this.loading = true;
+        this.startLoading(); // Assuming you have a custom progress bar method
+
+        const query = `
+          query ($ids: [Int]) {
+            Page {
+              media(id_in: $ids, type: ANIME) {
+                id
+                title {
+                  romaji
+                  english
+                  native
+                }
+                type
+                endDate {
+                  year
+                  month
+                  day
+                }
+                startDate {
+                  year
+                  month
+                  day
+                }
+                studios(isMain: true) {
+                  nodes {
+                    name
+                  }
+                }
+                isAdult
+                source
+                genres
+                volumes
+                episodes
+                chapters
+                siteUrl
+                status
+                averageScore
+                meanScore
+                popularity
+                description
+                favourites
+                coverImage {
+                  extraLarge
+                  medium
+                  large
+                  color
+                }
+              }
+            }
+          }`;
+
+        const variables = {
+          ids: this.animeIds
+        };
+
+        try {
+          const response = await fetch('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+              query,
+              variables
+            })
+          });
+          const jsonResponse = await response.json();
+          // console.log(jsonResponse)
+          this.fetchedData = jsonResponse.data.Page.media;
+          console.log(this.fetchedData);
+        } catch (error) {
+          console.error('Error fetching data:', error);
+        } finally {
+          this.loading = false;
+        }
+      }
+
     },
-      mounted() {
-        console.clear()
-        // this.fetchTrendingAnime();
-        AOS.init();
+    mounted() {
+      console.clear()
+      AOS.init();
 
-        this.currentMode = 'popular'
-        this.query = 'my hero'
-        this.fetchPopularAnime()
+      this.fetchTrendingAnime();
 
-        // this.isMenuOpen = true
-      },
+      this.currentMode = 'trending'
+      // this.fetchPopularAnime()
+      
+      this.animeIds =[16498,113415,11061]
+      // this.fetchAnimeList()
+
+      // this.isMenuOpen = true
+    },
 
   };
 </script>
