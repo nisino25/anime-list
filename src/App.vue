@@ -17,7 +17,7 @@
 
       <ul class="binary-list-container">
         <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
-          <li data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000"  
+          <li data-aos="fade-up" :data-aos-delay="((index % 2) * 100) + 0"  data-aos-duration="1000"  
           >
           <div class="image-container">
             <img :src="anime.coverImage.large" :alt="anime.title.romaji" @touchstart="startPress(anime, $event)" 
@@ -119,7 +119,8 @@
     <div v-if="!isProgressMax" class="progress-bar" :style="{ width: progressBarWidth }"></div>
     <!-- <vue-progress-bar v-if="loading"></vue-progress-bar> -->
     <div>
-      <div style="" class="tab-wrapper">
+
+      <div class="tab-wrapper">
         <div @click="myAnimeListTab = 'past'; fetchAnimeList() " class="tab"  :style="{ background: myAnimeListTab == 'past' ? '#FB6350' : '' }">
           <span>Past: {{ myAnimeList.filter(anime => anime.status === 'past').length }}</span>
         </div>
@@ -130,6 +131,7 @@
           <span>Future: {{ myAnimeList.filter(anime => anime.status === 'future').length }}</span>
         </div>
       </div>
+
       <h2>My anime list</h2>
       <div v-if="loading">Loading...</div>
       <span v-if="fetchedData"><br><br>Found: {{ fetchedData.length }}</span>
@@ -137,10 +139,12 @@
 
       <ul class="binary-list-container">
         <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
-          <li data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000"  
+          <li data-aos="fade-up" :data-aos-delay="((index % 2) * 100) + 0"  data-aos-duration="1000"  
           >
           <div class="image-container">
-            <img :src="anime.coverImage.large" :alt="anime.title.romaji" @touchstart="startPress(anime, $event)" 
+            <img :src="anime.coverImage.large" :alt="anime.title.romaji" 
+            @click="removeAnime(anime)"
+            @touchstart="startPress(anime, $event)" 
             @touchend="cancelPress"
             @touchmove="moveImage($event)"/>
           </div>
@@ -976,7 +980,26 @@
         } finally {
           this.loading = false;
         }
-      }
+      },
+
+      removeAnime(animeToRemove) {
+  const animeId = animeToRemove.id;
+  // Find the index of the anime with the given id and status in myAnimeList
+  const index = this.myAnimeList.findIndex(anime => anime.id === animeId && anime.status === this.myAnimeListTab);
+
+  // If the anime with the given id and status is found, remove it
+  if (index !== -1) {
+    const confirmMessage = `Are you sure you want to remove anime with ID ${animeToRemove.title.native}`;
+    if (confirm(confirmMessage)) {
+      this.myAnimeList.splice(index, 1);
+      console.log(`Removed anime with id ${animeId} and status ${this.myAnimeListTab}`);
+      this.fetchAnimeList()
+    }
+  } else {
+    console.log(`Anime with id ${animeId} and status ${this.myAnimeListTab} not found in myAnimeList`);
+  }
+}
+
 
     },
 
