@@ -6,8 +6,11 @@
   <template v-if="currentMode == 'search'">
     
     <div>
-      <input v-model="query" placeholder="Search for Anime...">
-    <button @click="searchAnime">Search</button>
+      <!-- <input v-model="query" placeholder="Search for Anime..."  @keyup.enter="searchAnime" ref="searchInput"> -->
+      <form @submit.prevent="searchAnime">
+        <input v-model="query" placeholder="Search for Anime..." ref="searchInput">
+        <button type="submit">Search</button>
+      </form>
       <div v-if="loading">Loading...</div>
       <span v-if="fetchedData"><br><br>Found: {{ fetchedData.length }}</span>
       
@@ -111,14 +114,22 @@
     
   </template>
 
-  
-
-  
 
   <template v-if="currentMode == 'profile'">
     <div v-if="!isProgressMax" class="progress-bar" :style="{ width: progressBarWidth }"></div>
     <!-- <vue-progress-bar v-if="loading"></vue-progress-bar> -->
     <div>
+      <div style="" class="tab-wrapper">
+        <div @click="myAnimeListTab = 'past'; fetchAnimeList() " class="tab"  :style="{ background: myAnimeListTab == 'past' ? '#FB6350' : '' }">
+          <span>Past: {{ myAnimeList.filter(anime => anime.status === 'past').length }}</span>
+        </div>
+        <div @click="myAnimeListTab = 'current'; fetchAnimeList() " class="tab"  :style="{ background: myAnimeListTab == 'current' ? '#FB6350' : '' }">
+          <span>Current: {{ myAnimeList.filter(anime => anime.status === 'current').length }}</span>
+        </div>
+        <div @click="myAnimeListTab = 'future'; fetchAnimeList() " class="tab"  :style="{ background: myAnimeListTab == 'futre' ? '#FB6350' : '' }">
+          <span>Future: {{ myAnimeList.filter(anime => anime.status === 'future').length }}</span>
+        </div>
+      </div>
       <h2>My anime list</h2>
       <div v-if="loading">Loading...</div>
       <span v-if="fetchedData"><br><br>Found: {{ fetchedData.length }}</span>
@@ -172,10 +183,10 @@
 
   <div v-if="showModal" class="modal">
     <div id="center-area" class="area">Center</div>
-    <div id="top-area" class="area">Top</div>
-    <div id="right-area" class="area">Right</div>
+    <div id="top-area" class="area">Currently</div>
+    <div id="right-area" class="area">Future</div>
     <div id="bottom-area" class="area">Bottom</div>
-    <div id="left-area" class="area">Left</div>
+    <div id="left-area" class="area">Past</div>
   </div>
 
   <div v-if="showCircle" 
@@ -240,6 +251,8 @@
         loading: false,
         testNum: 3,
 
+        composing: false,
+
         ratingPercent: Number,
 
         isMenuOpen: false,
@@ -271,7 +284,9 @@
 
         popularPage: 1,
 
-        animeIds: [],
+        myAnimeList: [],
+
+        myAnimeListTab: 'current',
 
 
       };
@@ -527,9 +542,9 @@
         this.fetchedData = [];
         
         setTimeout(() => {
-              this.toggleRotation()
-              
-            }, 750); // Delay to ensure users see the progress bar hit 100%
+          this.toggleRotation()
+          
+        }, 500); // Delay to ensure users see the progress bar hit 100%
         
 
         if(newMode == 'search') this.searchList = null
@@ -562,7 +577,6 @@
         }, 500); // .5 second
       },
       cancelPress(event) {
-        console.log('touch ends')
         clearTimeout(this.pressTimer);
         this.showCircle = false;
 
@@ -571,28 +585,32 @@
         this.showModal = false;
 
 
+       // Function to check if the touch end is within an area
+        function isTouchInArea(touchX, touchY, rect) {
+            return touchX >= rect.left && touchX <= rect.right && touchY >= rect.top && touchY <= rect.bottom;
+        }
+
         // Get the touch end position
         const touchEndX = event.changedTouches[0].clientX;
         const touchEndY = event.changedTouches[0].clientY;
 
-        // Get the right area element and its position
-        const rightArea = document.getElementById('right-area');
-        const rect = rightArea.getBoundingClientRect();
+        // Get the areas and their positions
+        const areas = {
+            current: document.getElementById('top-area').getBoundingClientRect(),
+            future: document.getElementById('right-area').getBoundingClientRect(),
+            past: document.getElementById('left-area').getBoundingClientRect(),
+        };
 
-        // Check if the touch end is within the right area
-        if (
-          touchEndX >= rect.left && 
-          touchEndX <= rect.right && 
-          touchEndY >= rect.top && 
-          touchEndY <= rect.bottom
-        ) {
-          // Actions to perform if touch ends in the right area
-          console.log('Touch ended in right area');
-          this.animeIds.push(this.selectedAnimeId)
-          // ... Your specific logic here ...
+        // Check each area
+        for (const [areaName, rect] of Object.entries(areas)) {
+            if (isTouchInArea(touchEndX, touchEndY, rect)) {
+                const status = areaName
+                this.myAnimeList.push({ id: this.selectedAnimeId, status });
+                break; // Assuming only one area can be touched at a time
+            }
         }
 
-        // Enable vertical scrolling again
+        // console.table(this.groupedAnime)
         
       },
       moveImage(event) {
@@ -622,6 +640,7 @@
       
 
       async searchAnime() {
+        this.$refs.searchInput.blur();
         this.loading = true;
         this.startLoading(); // Start the custom progress bar
         // this.$Progress.start();
@@ -714,6 +733,11 @@
           console.error('Error fetching data:', error);
         } finally {
           this.loading = false;
+        }
+      },
+      handleEnter() {
+        if (!this.composing) {
+          this.searchAnime();
         }
       },
 
@@ -873,7 +897,8 @@
       },
 
       async fetchAnimeList() {
-        if(this.animeIds.length < 1) return
+        if(this.myAnimeList.length < 1) return
+        console.log(this.myAnimeListTab)
         this.loading = true;
         this.startLoading(); // Assuming you have a custom progress bar method
 
@@ -927,7 +952,7 @@
           }`;
 
         const variables = {
-          ids: this.animeIds
+          ids: this.filteredMyAnimeList
         };
 
         try {
@@ -954,30 +979,71 @@
       }
 
     },
+
+    watch: {
+      showModal(newValue) {
+        if (newValue) {
+          document.body.classList.add('no-scroll');
+        } else {
+          document.body.classList.remove('no-scroll');
+        }
+      },
+      myAnimeList: {
+        deep: true,
+        handler(newValue) {
+          console.log('changing')
+          localStorage.setItem('localMyAnimeList', JSON.stringify(newValue));
+        }
+      },
+      
+    },
+
+    computed: {
+      filteredMyAnimeList() {
+        return this.myAnimeList
+          .filter(anime => anime.status === this.myAnimeListTab)
+          .map(anime => anime.id);
+      },
+      // groupedAnime() {
+      //   const grouped = {};
+      //   for (const anime of this.myAnimeList) {
+      //     const status = anime.status;
+      //     if (!grouped[status]) {
+      //       grouped[status] = [];
+      //     }
+      //     grouped[status].push(anime.id); // Push the id property
+      //   }
+      //   return grouped;
+      // },
+    },
+
     mounted() {
       console.clear()
       AOS.init();
 
-      this.fetchTrendingAnime();
-
-      this.currentMode = 'trending'
+      const localMyAnimeList = localStorage.getItem('localMyAnimeList');
+      if (localMyAnimeList) {
+        // If it exists, set it to the component's data
+        this.myAnimeList = JSON.parse(localMyAnimeList);
+        console.log('Local data "animeList" exists:', this.myAnimeList);
+      } else {
+        console.log('Local data "animeList" does not exist.');
+      }
+      
+      // this.fetchTrendingAnime();
+      this.currentMode = 'profile'
       // this.fetchPopularAnime()
       
-      // this.animeIds =[16498,113415,11061]
-      // this.fetchAnimeList()
+      // this.myAnimeList =[16498,113415,11061]
+      this.fetchAnimeList()
 
       // this.isMenuOpen = true
     },
 
-    watch: {
-  showModal(newValue) {
-    if (newValue) {
-      document.body.classList.add('no-scroll');
-    } else {
-      document.body.classList.remove('no-scroll');
-    }
-  },
-},
+    
+
+
+
 
 
   };
@@ -1479,6 +1545,23 @@
   @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+  }
+
+
+
+  /* ----------- */
+  .tab-wrapper{
+    width: 90%; 
+    margin: auto; 
+    display: grid; 
+    grid-template-columns: 30% 30% 30%; 
+    text-align: center; 
+    justify-content: space-between;
+  }
+
+  .tab-wrapper .tab{
+    border: 2px solid black;
+    transition: all .75s ease-in-out;
   }
 
 
