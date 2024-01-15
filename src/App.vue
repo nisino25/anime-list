@@ -1,44 +1,10 @@
 <template>
 
   <h1>{{currentMode }}</h1>
-
-  <template v-if="currentMode == 'trending'">
-    
-    <div @click="fetchRandomAnime()" style="position: absolute; right: 0; transform: translateY(-200%);" class="button">Get Random </div>
-    <div v-if="fetchedData.length">
-      <ul class="list-container">
-        <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
-          <li data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000"  
-          >
-            <img :src="anime.coverImage.large" :alt="anime.title.romaji" @touchstart="startPress(anime, $event)" 
-            @touchend="cancelPress($event)"
-            @touchmove="moveImage($event)"/>
-
-            <p @click="getDetail(anime)">{{ anime.title.native }}</p>
-            <div class="star-rating">
-                <div class="stars-outer">
-                    <div class="stars-inner" :style="{ width: `${anime.averageScore}%` }"></div>
-                    
-                    
-                </div>
-                <span>EP:{{ anime.episodes }}</span>
-                <!-- <span>EP:999</span> -->
-            </div>
-            
-          </li>
-        </template>
-      </ul>
-    </div>
-    <div v-else>
-      Loading...
-    </div>
-
-    
-  </template>
+  <div v-if="!isProgressMax" class="progress-bar" :style="{ width: progressBarWidth }"></div>
 
   <template v-if="currentMode == 'search'">
-    <div v-if="!isProgressMax" class="progress-bar" :style="{ width: progressBarWidth }"></div>
-    <!-- <vue-progress-bar v-if="loading"></vue-progress-bar> -->
+    
     <div>
       <input v-model="query" placeholder="Search for Anime...">
     <button @click="searchAnime">Search</button>
@@ -86,9 +52,6 @@
           </li>
         </template>
       </ul>
-      <!-- <div v-for="anime in searchList" :key="anime.id">
-        <h3>{{ anime?.title?.native }}</h3>
-      </div> -->
     </div>
   </template>
 
@@ -96,11 +59,14 @@
     <div v-if="!isProgressMax" class="progress-bar" :style="{ width: progressBarWidth }"></div>
     <ul class="single-row-list-container">
         <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
-          <li data-aos="fade-up">
+          <li 
+            data-aos="fade-up"
+            @touchstart="startPress(anime, $event)" 
+            @touchend="cancelPress"
+            @touchmove="moveImage($event)"
+          >
             <div class="image-container">
-              <img :src="anime.coverImage.medium" :alt="anime.title.romaji" @touchstart="startPress(anime, $event)" 
-              @touchend="cancelPress"
-              @touchmove="moveImage($event)"/>
+              <img :src="anime.coverImage.medium" :alt="anime.title.romaji"/>
             </div>
             No.{{ index+1 }}. {{ anime.title.native }}. <span style="float: right;">{{ getAnimeFavourites(anime.favourites) }}</span>
           </li>
@@ -108,6 +74,46 @@
     </ul>
     <div @click="fetchPopularAnime()" style="position: absolute; left: 0; transform: translateY(0%);margin-bottom: 50px; display: block;" class="button">Get More </div>
   </template>
+
+  <template v-if="currentMode == 'trending'">
+    
+    <div @click="fetchRandomAnime()" style="position: absolute; right: 0; transform: translateY(-200%);" class="button">Get Random </div>
+    <div v-if="fetchedData.length">
+      <ul class="list-container">
+        <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
+          <li 
+            data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000"  
+            @touchstart="startPress(anime, $event)" 
+            @touchend="cancelPress($event)"
+            @touchmove="moveImage($event)"
+          >
+            <img :src="anime.coverImage.large" :alt="anime.title.romaji"/>
+
+            <p @click="getDetail(anime)">{{ anime.title.native }}</p>
+            <div class="star-rating">
+                <div class="stars-outer">
+                    <div class="stars-inner" :style="{ width: `${anime.averageScore}%` }"></div>
+                    
+                    
+                </div>
+                <span>EP:{{ anime.episodes }}</span>
+                <!-- <span>EP:999</span> -->
+            </div>
+            
+          </li>
+        </template>
+      </ul>
+    </div>
+    <div v-else>
+      Loading...
+    </div>
+
+    
+  </template>
+
+  
+
+  
 
   <template v-if="currentMode == 'profile'">
     <div v-if="!isProgressMax" class="progress-bar" :style="{ width: progressBarWidth }"></div>
@@ -226,6 +232,7 @@
 
   export default {
     name: "TrendingAnime",
+
     data() {
       return {
         currentMode: 'trending',
@@ -272,6 +279,7 @@
     methods: {
       async fetchTrendingAnime() {
         this.loading = true;
+        this.startLoading(); // Start the custom progress bar
         const query = `
           query ($page: Int, $perPage: Int) {
             Page(page: $page, perPage: $perPage) {
@@ -547,18 +555,19 @@
           this.showModal = true;
           this.selectedImage = anime.coverImage.large;
           this.selectedAnimeId = anime.id
-          document.body.style.overflowY = 'hidden';
           this.imgPosition = {
             x: event.touches[0].clientX - 50, // Assuming circle radius 50px
             y: event.touches[0].clientY - 50,
           };
-        }, 1000); // 1 second
+        }, 500); // .5 second
       },
       cancelPress(event) {
         console.log('touch ends')
-        document.body.style.overflowY = 'auto';
         clearTimeout(this.pressTimer);
         this.showCircle = false;
+
+        if(!this.showModal) return
+
         this.showModal = false;
 
 
@@ -959,6 +968,17 @@
 
       // this.isMenuOpen = true
     },
+
+    watch: {
+  showModal(newValue) {
+    if (newValue) {
+      document.body.classList.add('no-scroll');
+    } else {
+      document.body.classList.remove('no-scroll');
+    }
+  },
+},
+
 
   };
 </script>
@@ -1440,6 +1460,15 @@
     background: white;
     /* Additional styling for each area */
   }
+
+  .no-scroll {
+    overflow: hidden;
+    height: 100vh;
+    width: 100%;
+    position: fixed; /* This can help in some cases */
+    /* background: green; */
+  }
+
 
   #center-area { /* Center area styling */ }
   #top-area { top: 0; /* Top area styling */ }
