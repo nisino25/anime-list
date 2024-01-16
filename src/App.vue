@@ -3,117 +3,46 @@
   <h1>{{currentMode }}</h1>
   <div v-if="!isProgressMax" class="progress-bar" :style="{ width: progressBarWidth }"></div>
 
+
+  <div v-if="currentMode == 'profile'" @click="resetLocaldata()" style="position: absolute; right: 0; top:10px; transform: translateY(0%); display: block;" class="button">Rest localData</div>
+
+  <div class="tab-wrapper" style="grid-template-columns: 22% 22% 22% 22%;">
+      <div @click="listStyle = 'detail'" class="tab"  :style="{ background: listStyle == 'detail' ? '#FB6350' : '' }">
+        <span>detail</span>
+      </div>
+      <div @click="listStyle = 'single'" class="tab"  :style="{ background: listStyle == 'single' ? '#FB6350' : '' }">
+        <span>single</span>
+      </div>
+      <div @click="listStyle = 'double'" class="tab"  :style="{ background: listStyle == 'double' ? '#FB6350' : '' }">
+        <span>double</span>
+      </div>
+      <div @click="listStyle = 'tripple'" class="tab"  :style="{ background: listStyle == 'tripple' ? '#FB6350' : '' }">
+        <span>tripple</span>
+      </div>
+  </div>
+
   <template v-if="currentMode == 'search'">
     
     <div>
-      <!-- <input v-model="query" placeholder="Search for Anime..."  @keyup.enter="searchAnime" ref="searchInput"> -->
       <form @submit.prevent="searchAnime">
         <input v-model="query" placeholder="Search for Anime..." ref="searchInput">
         <button type="submit">Search</button>
       </form>
-      <div v-if="loading">Loading...</div>
-      <span v-if="fetchedData"><br><br>Found: {{ fetchedData.length }}</span>
+      <span v-if="fetchedData?.length > 0"><br><br>Found: {{ fetchedData.length }}</span>
       
-
-      <ul class="binary-list-container">
-        <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
-          <li data-aos="fade-up" :data-aos-delay="((index % 2) * 100) + 0"  data-aos-duration="1000"  
-          >
-          <div class="image-container">
-            <img :src="anime.coverImage.large" :alt="anime.title.romaji" @touchstart="startPress(anime, $event)" 
-            @touchend="cancelPress"
-            @touchmove="moveImage($event)"/>
-          </div>
-            
-            <div class="list-bottom">
-              <p @click="getDetail(anime)">{{ anime.title.native }}</p>
-              <span class="badge" :style="getBadgeStyle(anime.format)">{{anime.format}}</span>
-              <span v-html="fetchContentMetrics(anime)"></span><br>
-
-              <template v-for="(genre,index)  in anime.genres" :key="index" >
-                <span v-if="index<2" class="badge" :style="getBadgeStyle(genre)">{{genre}}</span>
-              </template>
-
-              <span class="duration" v-if="anime.format !== 'MOVIE'" ><i class="fa-regular fa-calendar"></i>  {{ anime.startDate?.year }} - {{ anime.endDate?.year }}</span>
-              <span class="duration" v-else ><i class="fa-regular fa-calendar"></i>  {{ anime.startDate?.year }}</span>
-
-              <div class="star-rating">
-                <div class="stars-outer">
-                  <div class="stars-inner" :style="{ width: `${anime.averageScore}%` }"></div>
-                </div>
-                <div class="favorite-counter"><i class="fa-solid fa-star"></i>{{ getAnimeFavourites(anime.favourites) }}</div>
-                
-              </div>
-              
-              
-
-              <span class="description" v-html="anime.description" @click="anime.showingDetail = !anime.showingDetail" :class="{ showingDetail: anime.showingDetail }"></span>
-                
-              </div>
-              
-            
-          </li>
-        </template>
-      </ul>
     </div>
   </template>
 
   <template v-if="currentMode == 'popular'">
-    <div v-if="!isProgressMax" class="progress-bar" :style="{ width: progressBarWidth }"></div>
-    <ul class="single-row-list-container">
-        <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
-          <li 
-            data-aos="fade-up"
-            @touchstart="startPress(anime, $event)" 
-            @touchend="cancelPress"
-            @touchmove="moveImage($event)"
-          >
-            <div class="image-container">
-              <img :src="anime.coverImage.medium" :alt="anime.title.romaji"/>
-            </div>
-            No.{{ index+1 }}. {{ anime.title.native }}. <span style="float: right;">{{ getAnimeFavourites(anime.favourites) }}</span>
-          </li>
-        </template>
-    </ul>
-    <div @click="fetchPopularAnime()" style="position: absolute; left: 0; transform: translateY(0%);margin-bottom: 50px; display: block;" class="button">Get More </div>
+    <div @click="fetchPopularAnime()" style="position: absolute; left: 0; bottom:-30px; transform: translateY(0%); display: block;" class="button">Get More </div>
   </template>
 
   <template v-if="currentMode == 'trending'">
     
-    <div @click="fetchRandomAnime()" style="position: absolute; right: 0; transform: translateY(-200%);" class="button">Get Random </div>
-    <div v-if="fetchedData.length">
-      <ul class="list-container">
-        <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
-          <li 
-            data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000"  
-            @touchstart="startPress(anime, $event)" 
-            @touchend="cancelPress($event)"
-            @touchmove="moveImage($event)"
-          >
-            <img :src="anime.coverImage.large" :alt="anime.title.romaji"/>
-
-            <p @click="getDetail(anime)">{{ anime.title.native }}</p>
-            <div class="star-rating">
-                <div class="stars-outer">
-                    <div class="stars-inner" :style="{ width: `${anime.averageScore}%` }"></div>
-                    
-                    
-                </div>
-                <span>EP:{{ anime.episodes }}</span>
-                <!-- <span>EP:999</span> -->
-            </div>
-            
-          </li>
-        </template>
-      </ul>
-    </div>
-    <div v-else>
-      Loading...
-    </div>
-
+    <div @click="fetchRandomAnime()" style="position: absolute; right: 0; transform: translateY(-330%);" class="button">Get Random </div>
+    
     
   </template>
-
 
   <template v-if="currentMode == 'profile'">
     <div v-if="!isProgressMax" class="progress-bar" :style="{ width: progressBarWidth }"></div>
@@ -127,69 +56,119 @@
         <div @click="myAnimeListTab = 'current'; fetchAnimeList() " class="tab"  :style="{ background: myAnimeListTab == 'current' ? '#FB6350' : '' }">
           <span>Current: {{ myAnimeList.filter(anime => anime.status === 'current').length }}</span>
         </div>
-        <div @click="myAnimeListTab = 'future'; fetchAnimeList() " class="tab"  :style="{ background: myAnimeListTab == 'futre' ? '#FB6350' : '' }">
+        <div @click="myAnimeListTab = 'future'; fetchAnimeList() " class="tab"  :style="{ background: myAnimeListTab == 'future' ? '#FB6350' : '' }">
           <span>Future: {{ myAnimeList.filter(anime => anime.status === 'future').length }}</span>
         </div>
       </div>
 
       <h2>My anime list</h2>
-      <div v-if="loading">Loading...</div>
-      <span v-if="fetchedData"><br><br>Found: {{ fetchedData.length }}</span>
-      
-
-      <ul class="binary-list-container">
-        <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
-          <li data-aos="fade-up" :data-aos-delay="((index % 2) * 100) + 0"  data-aos-duration="1000"  
-          >
-          <div class="image-container">
-            <img :src="anime.coverImage.large" :alt="anime.title.romaji" 
-            @click="removeAnime(anime)"
-            @touchstart="startPress(anime, $event)" 
-            @touchend="cancelPress"
-            @touchmove="moveImage($event)"/>
-          </div>
-            
-            <div class="list-bottom">
-              <p @click="getDetail(anime)">{{ anime.title.native }}</p>
-              <span class="badge" :style="getBadgeStyle(anime.format)">{{anime.format}}</span>
-              <span v-html="fetchContentMetrics(anime)"></span><br>
-
-              <template v-for="(genre,index)  in anime.genres" :key="index" >
-                <span v-if="index<2" class="badge" :style="getBadgeStyle(genre)">{{genre}}</span>
-              </template>
-
-              <span class="duration" v-if="anime.format !== 'MOVIE'" ><i class="fa-regular fa-calendar"></i>  {{ anime.startDate?.year }} - {{ anime.endDate?.year }}</span>
-              <span class="duration" v-else ><i class="fa-regular fa-calendar"></i>  {{ anime.startDate?.year }}</span>
-
-              <div class="star-rating">
-                <div class="stars-outer">
-                  <div class="stars-inner" :style="{ width: `${anime.averageScore}%` }"></div>
-                </div>
-                <div class="favorite-counter"><i class="fa-solid fa-star"></i>{{ getAnimeFavourites(anime.favourites) }}</div>
-                
-              </div>
-              
-              
-
-              <span class="description" v-html="anime.description" @click="anime.showingDetail = !anime.showingDetail" :class="{ showingDetail: anime.showingDetail }"></span>
-                
-              </div>
-              
-            
-          </li>
-        </template>
-      </ul>
-      <!-- <div v-for="anime in searchList" :key="anime.id">
-        <h3>{{ anime?.title?.native }}</h3>
-      </div> -->
     </div>
   </template>
 
+  <div class="list-container">
+    <template v-if="fetchedData.length">
+
+      <template v-if="listStyle == 'single'">
+        <ul class="single-row-list-container">
+            <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
+              <li 
+                data-aos="fade-up"
+                @touchstart="startPress(anime, $event)" 
+                @touchend="cancelPress"
+                @touchmove="moveImage($event)"
+              >
+                <div class="image-container">
+                  <img :src="anime.coverImage.medium" :alt="anime.title.romaji"/>
+                </div>
+                No.{{ index+1 }}. {{ anime.title.native }}. <span style="float: right;">{{ getAnimeFavourites(anime.favourites) }}</span>
+              </li>
+            </template>
+        </ul>
+      </template>
+
+      <template v-if="listStyle == 'double'">
+        <ul class="binary-list-container">
+            <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
+              <li data-aos="fade-up" :data-aos-delay="((index % 2) * 100) + 0"  data-aos-duration="1000"  
+              >
+              <div class="image-container">
+                <img :src="anime.coverImage.large" :alt="anime.title.romaji" @touchstart="startPress(anime, $event)" 
+                @touchend="cancelPress"
+                @touchmove="moveImage($event)"/>
+              </div>
+                
+                <div class="list-bottom">
+                  <p @click="getDetail(anime)">{{ anime.title.native }}</p>
+                  <span class="badge" :style="getBadgeStyle(anime.format)">{{anime.format}}</span>
+                  <span v-html="fetchContentMetrics(anime)"></span><br>
+  
+                  <template v-for="(genre,index)  in anime.genres" :key="index" >
+                    <span v-if="index<2" class="badge" :style="getBadgeStyle(genre)">{{genre}}</span>
+                  </template>
+  
+                  <span class="duration" v-if="anime.format !== 'MOVIE'" ><i class="fa-regular fa-calendar"></i>  {{ anime.startDate?.year }} - {{ anime.endDate?.year }}</span>
+                  <span class="duration" v-else ><i class="fa-regular fa-calendar"></i>  {{ anime.startDate?.year }}</span>
+  
+                  <div class="star-rating">
+                    <div class="stars-outer">
+                      <div class="stars-inner" :style="{ width: `${anime.averageScore}%` }"></div>
+                    </div>
+                    <div class="favorite-counter"><i class="fa-solid fa-star"></i>{{ getAnimeFavourites(anime.favourites) }}</div>
+                    
+                  </div>
+                  
+                  
+  
+                  <span class="description" v-html="anime.description" @click="anime.showingDetail = !anime.showingDetail" :class="{ showingDetail: anime.showingDetail }"></span>
+                  <br>
+                  <i class="fa-solid fa-trash" style="color: #FB6350; display: block;text-align: right;" @click="removeAnime(anime)" v-if="currentMode == 'profile'"></i>
+                    
+                  </div>
+                  
+                
+              </li>
+            </template>
+          </ul>
+      </template>
+
+      <template v-if="listStyle == 'tripple'">
+        <ul class="triple-row-list">
+          <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
+            <li 
+              data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000"  
+              @touchstart="startPress(anime, $event)" 
+              @touchend="cancelPress($event)"
+              @touchmove="moveImage($event)"
+            >
+              <img :src="anime.coverImage.large" :alt="anime.title.romaji"/>
+  
+              <p @click="getDetail(anime)">{{ anime.title.native }}</p>
+              <div class="star-rating">
+                  <div class="stars-outer">
+                      <div class="stars-inner" :style="{ width: `${anime.averageScore}%` }"></div>
+                      
+                      
+                  </div>
+                  <span>EP:{{ anime.episodes }}</span>
+              </div>
+              
+            </li>
+          </template>
+        </ul>
+      </template>
+
+    </template>
+  </div>
+
+
+
+  
+
   <div v-if="showModal" class="modal">
-    <div id="center-area" class="area">Center</div>
+    <!-- <div id="center-area" class="area">Center</div> -->
     <div id="top-area" class="area">Currently</div>
     <div id="right-area" class="area">Future</div>
-    <div id="bottom-area" class="area">Bottom</div>
+    <!-- <div id="bottom-area" class="area">Bottom</div> -->
     <div id="left-area" class="area">Past</div>
   </div>
 
@@ -289,8 +268,11 @@
         popularPage: 1,
 
         myAnimeList: [],
+        listStyle: "tripple",
 
         myAnimeListTab: 'current',
+
+
 
 
       };
@@ -527,6 +509,10 @@
           return style;
       },
       toggleRotation() {
+
+        this.showCircle = false;
+        this.showModal = false
+
         if(!this.isMenuOpen){
           Object.keys(this.rotations).forEach((className) => {
             this.rotations[className] += 90;
@@ -566,6 +552,7 @@
 
 
       startPress(anime, event) {
+        if(this.currentMode == 'profile') return
         
         this.pressTimer = setTimeout(() => {
           
@@ -581,6 +568,7 @@
         }, 500); // .5 second
       },
       cancelPress(event) {
+        // if(this.currentMode == 'trending') return
         clearTimeout(this.pressTimer);
         this.showCircle = false;
 
@@ -591,12 +579,15 @@
 
        // Function to check if the touch end is within an area
         function isTouchInArea(touchX, touchY, rect) {
+            // alert(`left:${rect.left},right:${rect.right},top:${rect.top},bottom${rect.bottom}`)
             return touchX >= rect.left && touchX <= rect.right && touchY >= rect.top && touchY <= rect.bottom;
         }
 
         // Get the touch end position
         const touchEndX = event.changedTouches[0].clientX;
         const touchEndY = event.changedTouches[0].clientY;
+
+        // alert(`${touchEndX},${touchEndY}`)
 
         // Get the areas and their positions
         const areas = {
@@ -608,8 +599,17 @@
         // Check each area
         for (const [areaName, rect] of Object.entries(areas)) {
             if (isTouchInArea(touchEndX, touchEndY, rect)) {
+                // alert(areaName)
                 const status = areaName
-                this.myAnimeList.push({ id: this.selectedAnimeId, status });
+                const animeExists = this.myAnimeList.some(anime => anime.id === this.selectedAnimeId && anime.status === status);
+
+                if (!animeExists) {
+                  this.myAnimeList.push({ id: this.selectedAnimeId, status });
+                } else {
+                  // Handle the rejection case, maybe with an alert or error message
+                  console.log('Anime with the same ID and status already exists.');
+                }
+                // this.myAnimeList.push({ id: this.selectedAnimeId, status });
                 break; // Assuming only one area can be touched at a time
             }
         }
@@ -983,22 +983,30 @@
       },
 
       removeAnime(animeToRemove) {
-  const animeId = animeToRemove.id;
-  // Find the index of the anime with the given id and status in myAnimeList
-  const index = this.myAnimeList.findIndex(anime => anime.id === animeId && anime.status === this.myAnimeListTab);
+        const animeId = animeToRemove.id;
+        // Find the index of the anime with the given id and status in myAnimeList
+        const index = this.myAnimeList.findIndex(anime => anime.id === animeId && anime.status === this.myAnimeListTab);
 
-  // If the anime with the given id and status is found, remove it
-  if (index !== -1) {
-    const confirmMessage = `Are you sure you want to remove anime with ID ${animeToRemove.title.native}`;
-    if (confirm(confirmMessage)) {
-      this.myAnimeList.splice(index, 1);
-      console.log(`Removed anime with id ${animeId} and status ${this.myAnimeListTab}`);
-      this.fetchAnimeList()
-    }
-  } else {
-    console.log(`Anime with id ${animeId} and status ${this.myAnimeListTab} not found in myAnimeList`);
-  }
-}
+        // If the anime with the given id and status is found, remove it
+        if (index !== -1) {
+          const confirmMessage = `Are you sure you want to remove anime with ID ${animeToRemove.title.native}`;
+          if (confirm(confirmMessage)) {
+            this.myAnimeList.splice(index, 1);
+            console.log(`Removed anime with id ${animeId} and status ${this.myAnimeListTab}`);
+            this.fetchAnimeList()
+          }
+        } else {
+          console.log(`Anime with id ${animeId} and status ${this.myAnimeListTab} not found in myAnimeList`);
+        }
+      },
+
+      resetLocaldata(){
+        const confirmMessage = `Are you sure you want to delete local Data?`;
+        if (confirm(confirmMessage)) {
+          localStorage.removeItem('localMyAnimeList'); // Remove the item from localStorage
+          location.reload(); // Reload the page
+        }
+      },
 
 
     },
@@ -1014,7 +1022,7 @@
       myAnimeList: {
         deep: true,
         handler(newValue) {
-          console.log('changing')
+          
           localStorage.setItem('localMyAnimeList', JSON.stringify(newValue));
         }
       },
@@ -1104,7 +1112,7 @@
     
   }
 
-  .list-container{
+  .triple-row-list{
     padding-inline-start: unset;
 
     display: grid;
@@ -1119,11 +1127,11 @@
     /* background: red; */
   }
 
-  .list-container li{
+  .triple-row-list li{
     list-style: none;
   }
 
-  .list-container li img{
+  .triple-row-list li img{
     display: block;
     margin: auto;
     /* max-width: 100%; */
@@ -1141,7 +1149,7 @@
     -webkit-user-drag: none;
   }
 
-  .list-container li p{
+  .triple-row-list li p{
     font-weight: bold;
     font-size: .8em;
     margin: 10px 0px 0px;
@@ -1539,6 +1547,10 @@
     justify-content: center;
     align-items: center;
     animation: fadeIn 0.5s; /* Smooth fade-in effect */
+
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .area {
@@ -1580,6 +1592,7 @@
     grid-template-columns: 30% 30% 30%; 
     text-align: center; 
     justify-content: space-between;
+    margin-bottom: 20px;
   }
 
   .tab-wrapper .tab{
