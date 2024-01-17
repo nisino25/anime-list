@@ -16,8 +16,8 @@
       <div @click="listStyle = 'double'" class="tab"  :style="{ background: listStyle == 'double' ? '#FB6350' : '' }">
         <span>double</span>
       </div>
-      <div @click="listStyle = 'tripple'" class="tab"  :style="{ background: listStyle == 'tripple' ? '#FB6350' : '' }">
-        <span>tripple</span>
+      <div @click="listStyle = 'triple'" class="tab"  :style="{ background: listStyle == 'triple' ? '#FB6350' : '' }">
+        <span>triple</span>
       </div>
   </div>
 
@@ -131,7 +131,7 @@
           </ul>
       </template>
 
-      <template v-if="listStyle == 'tripple'">
+      <template v-if="listStyle == 'triple'">
         <ul class="triple-row-list">
           <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
             <li 
@@ -176,7 +176,7 @@
          :style="{ background: `url(${selectedImage}) center/cover`, 
                    transform: `translate(${imgPosition.x}px, ${imgPosition.y}px)` }" 
          class="circle"
-    ></div>
+  ></div>
     
 
   <div class="radial-menu">
@@ -255,6 +255,7 @@
         lastPosition: { x: 0, y: 0 },
 
         showModal: false,
+        scrollPosition: 0,
 
         query: '',
         searchList: null,
@@ -268,7 +269,7 @@
         popularPage: 1,
 
         myAnimeList: [],
-        listStyle: "tripple",
+        listStyle: "triple",
 
         myAnimeListTab: 'current',
 
@@ -574,12 +575,17 @@
 
         if(!this.showModal) return
 
+
         this.showModal = false;
+
+        
 
 
        // Function to check if the touch end is within an area
-        function isTouchInArea(touchX, touchY, rect) {
-            // alert(`left:${rect.left},right:${rect.right},top:${rect.top},bottom${rect.bottom}`)
+        function isTouchInArea(touchX, touchY, rect, status) {
+          if(status == 'current'){
+            return touchX >= rect.left && touchX <= rect.right && touchY >= 0 && touchY <= 150;
+          }
             return touchX >= rect.left && touchX <= rect.right && touchY >= rect.top && touchY <= rect.bottom;
         }
 
@@ -596,14 +602,19 @@
             past: document.getElementById('left-area').getBoundingClientRect(),
         };
 
+
         // Check each area
         for (const [areaName, rect] of Object.entries(areas)) {
-            if (isTouchInArea(touchEndX, touchEndY, rect)) {
+            if (isTouchInArea(touchEndX, touchEndY, rect,areaName)) {
                 // alert(areaName)
+                
                 const status = areaName
                 const animeExists = this.myAnimeList.some(anime => anime.id === this.selectedAnimeId && anime.status === status);
+                alert(`adding to ${status}`)
+                
 
                 if (!animeExists) {
+                  
                   this.myAnimeList.push({ id: this.selectedAnimeId, status });
                 } else {
                   // Handle the rejection case, maybe with an alert or error message
@@ -1008,17 +1019,38 @@
         }
       },
 
+      disableScroll() {
+        this.scrollPosition = window.pageYOffset; // Store the current scroll position
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${this.scrollPosition}px`; // Offset the body's position
+        document.body.style.width = '100%';
+      },
+
+      enableScroll() {
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('position');
+        document.body.style.removeProperty('top');
+        document.body.style.removeProperty('width');
+        window.scrollTo(0, this.scrollPosition); // Restore the scroll position
+      },
+
 
     },
 
     watch: {
+      
       showModal(newValue) {
         if (newValue) {
-          document.body.classList.add('no-scroll');
+          this.disableScroll();
         } else {
-          document.body.classList.remove('no-scroll');
+          this.enableScroll();
         }
       },
+  
+        
+      
+      
       myAnimeList: {
         deep: true,
         handler(newValue) {
@@ -1061,12 +1093,15 @@
         console.log('Local data "animeList" does not exist.');
       }
       
-      // this.fetchTrendingAnime();
+      this.fetchTrendingAnime();
       this.currentMode = 'profile'
+      this.currentMode = 'trending'
+
+      this.listStyle = 'single'
       // this.fetchPopularAnime()
       
       // this.myAnimeList =[16498,113415,11061]
-      this.fetchAnimeList()
+      // this.fetchAnimeList()
 
       // this.isMenuOpen = true
     },
@@ -1094,6 +1129,9 @@
   html{
     background: #F7EADF;
     font-family: 'Roboto Condensed', sans-serif;
+
+    max-width: 750px;
+    margin:auto;
     /* #FB6350 */
   }
 
@@ -1206,6 +1244,10 @@
 
   /* radial menu ----------------- */
 
+  .radial-menu{
+    
+  }
+
   @import url("https://fonts.googleapis.com/css?family=Crimson+Text&display=swap");
   @import url("https://fonts.googleapis.com/css?family=Work+Sans&display=swap");
 
@@ -1233,6 +1275,10 @@
     /* transform: translateX(200px) translateY(200px); */
     transition: all ease-in-out 750ms;
     /* transition: transform 500s; */
+
+    /* pointer-events: none; */
+    user-select: none;
+    -webkit-user-select: none;
 
   }
 
@@ -1360,6 +1406,7 @@
     border: 2px black solid;
 
     transition: all .05s ease-in-out;
+    opacity: .8;
   }
 
 
@@ -1513,24 +1560,39 @@
   }
 
   .single-row-list-container li {
-    display: flex;
+    display: grid;
+    grid-template-columns: 20% 60% 10%;
     justify-content: space-between;
     align-items: center;
     border: 2px solid black;
     margin: 10px auto;
+
   }
 
   .single-row-list-container .image-container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* width: 100%; */
+    aspect-ratio: 1/1;
+    overflow: hidden; 
+    position: relative;
+    height: 80px !important;
 
   }
 
   .single-row-list-container li img{
-    height: 100px;
+    /* height: 100px;
     margin: 0;
     margin-right: 10px;
 
-    display: block; /* Set the image to display as a block element */
-    vertical-align: bottom;
+    display: block; 
+    vertical-align: bottom; */
+
+    position: absolute;
+    top: 50%;
+    left:50%;
+    transform: translate(-50%,-50%);
   }
 
 
@@ -1548,9 +1610,9 @@
     align-items: center;
     animation: fadeIn 0.5s; /* Smooth fade-in effect */
 
-    pointer-events: none;
+    /* pointer-events: none;
     user-select: none;
-    -webkit-user-select: none;
+    -webkit-user-select: none; */
   }
 
   .area {
@@ -1564,7 +1626,7 @@
 
   .no-scroll {
     overflow: hidden;
-    height: 100vh;
+    height: 100%;
     width: 100%;
     position: fixed; /* This can help in some cases */
     /* background: green; */
