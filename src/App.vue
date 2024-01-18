@@ -1677,7 +1677,7 @@
     /* max-height: 15em; */
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 7;
+    -webkit-line-clamp: 6;
     -webkit-box-orient: vertical;
     text-overflow: ellipsis;
     white-space: normal;
