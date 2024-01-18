@@ -68,6 +68,39 @@
   <div class="list-container">
     <template v-if="fetchedData.length">
 
+      <template v-if="listStyle == 'detail'">
+        <ul class="detail-row-list-container">
+            <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
+              <li 
+                data-aos="fade-up"
+                @touchstart="startPress(anime, $event)" 
+                @touchend="cancelPress"
+                @touchmove="moveImage($event)"
+              >
+                <div class="image-container">
+                  <img :src="anime.coverImage.large" :alt="anime.title.romaji"/>
+                  <div class="overlay">
+                    <p class="anime-title">{{ anime.title.native }}</p>
+                    <span class="studio">{{ anime.studios?.nodes[0]?.name }}</span>
+                  </div>
+                </div>
+
+                <div>
+                  {{ index+1 }}. <span v-if="anime.startDate?.year">({{ anime.startDate?.year }})</span>
+                  <p v-html="anime.description" class="description"></p>
+                  <hr>
+                  <template v-for="(genre)  in anime.genres" :key="genre">
+                    <span>{{ genre }}, </span>
+                  </template>
+                </div>
+
+                
+                <!-- <span style="float: right;">{{ getAnimeFavourites(anime.favourites) }}</span> -->
+              </li>
+            </template>
+        </ul>
+      </template>
+
       <template v-if="listStyle == 'single'">
         <ul class="single-row-list-container">
             <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
@@ -324,6 +357,7 @@
               favourites
               coverImage {
                 extraLarge
+                large
                 medium
                 large
                 color
@@ -356,7 +390,7 @@
           });
           const jsonResponse = await response.json();
           this.fetchedData = jsonResponse.data.Page.media;
-          // console.table(this.fetchedData)
+          console.log(this.fetchedData)
         } catch (error) {
           console.error('Error fetching data:', error);
         } finally {
@@ -1088,7 +1122,7 @@
       if (localMyAnimeList) {
         // If it exists, set it to the component's data
         this.myAnimeList = JSON.parse(localMyAnimeList);
-        console.log('Local data "animeList" exists:', this.myAnimeList);
+        // console.log('Local data "animeList" exists:', this.myAnimeList);
       } else {
         console.log('Local data "animeList" does not exist.');
       }
@@ -1097,7 +1131,7 @@
       this.currentMode = 'profile'
       this.currentMode = 'trending'
 
-      this.listStyle = 'single'
+      this.listStyle = 'detail'
       // this.fetchPopularAnime()
       
       // this.myAnimeList =[16498,113415,11061]
@@ -1549,6 +1583,104 @@
     color: 	#FF8C00;
     margin-right: 2.5px;
     transform: translateY(-1.5px);
+  }
+
+  .detail-row-list-container{
+    margin: 0;
+    margin-bottom: 50px;
+    padding-left: 0;
+    list-style: none;
+  }
+
+  .detail-row-list-container li {
+    display: grid;
+    grid-template-columns: 45% 50%;
+    justify-content: space-between;
+    /* justify-content: space-around; */
+    align-items: center;
+    border: 1.5px solid black;
+    margin: 10px auto;
+
+    border-radius: 10px;
+    overflow: hidden;
+
+  }
+
+  .detail-row-list-container .image-container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; 
+    position: relative;
+    
+    /* border: 2px solid red; */
+
+    aspect-ratio: 2/3;
+    width: 100%;
+    overflow: hidden; 
+    position: relative;
+    /* height: 200px !important; */
+  }
+
+  .detail-row-list-container li img{
+    height: 100%;
+    /* width: 100%; */
+    /* height: auto; */
+    /* height: 100px;
+    margin: 0;
+    margin-right: 10px;
+
+    display: block; 
+    vertical-align: bottom; */
+
+    position: absolute;
+    top: 50%;
+    left:50%;
+    transform: translate(-50%,-50%);
+  }
+
+  .detail-row-list-container .image-container .overlay{
+    position: absolute;
+    bottom: 0;
+    display: block;
+    color: black;
+    /* padding: 5px; */
+    width:100%;
+    background: rgba(251, 99, 80, 0.8);
+    /* opacity: .8; */
+    z-index: 100;
+  }
+
+  .detail-row-list-container .image-container .overlay .anime-title{
+    font-weight: bold;
+    /* color: white; */
+    display: block;
+    width: 90%;
+    margin: 10px auto;
+    font-size: 16px;
+    color: white;
+  }
+
+  .detail-row-list-container .image-container .overlay .studio{
+    display: block;
+    width: 90%;
+    margin: 10px auto;
+    font-weight: bold;
+    font-size: 15px;
+    /* color: white; */
+  }
+
+  .detail-row-list-container .description{
+    transition: all 2s ease;
+    margin: 0;
+    line-height: 1.5em;
+    /* max-height: 15em; */
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 7;
+    -webkit-box-orient: vertical;
+    text-overflow: ellipsis;
+    white-space: normal;
   }
 
 
