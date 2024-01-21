@@ -72,6 +72,9 @@
         <ul class="detail-row-list-container">
             <template v-for="(anime, index)  in fetchedData" :key="anime.id" >
               <li 
+                :id="`anime-${anime.id}`"
+                
+                ref="setAnimeRef"
                 data-aos="fade-up"
                 @touchstart="startPress(anime, $event)" 
                 @touchend="cancelPress"
@@ -85,13 +88,52 @@
                   </div>
                 </div>
 
-                <div>
-                  {{ index+1 }}. <span v-if="anime.startDate?.year">({{ anime.startDate?.year }})</span>
+                <div class="anime-detail">
+
+                  <strong>No.{{ index+1 }}</strong> <span style="float: right;" v-if="anime.startDate?.year">{{ anime.startDate?.year }} - {{ anime.endDate?.year }}</span>
                   <p v-html="anime.description" class="description"></p>
+
                   <hr>
+
                   <template v-for="(genre)  in anime.genres" :key="genre">
                     <span>{{ genre }}, </span>
                   </template>
+
+                  
+
+                  <template v-if="anime.format == 'TV'">
+                    <hr>
+
+                    <template v-if="currentMode == 'profile' && myAnimeListTab == 'current'">
+                      <div class="anime-progress-box">
+                        <div class="anime-progress-top" v-if="anime.episodes">
+                          <vue3-autocounter class="counter" ref='counter' :startAmount='0'  suffix='%' :endAmount="anime.progress" :duration='1.25'  separator=',' :autoinit='true' />
+                        </div>
+                        <div class="anime-progres-middle">
+                          <div class="anime-progress-container">
+                            <div class="anime-progress-bar" :style="{ width: anime.hasAppeared ? (checkProgress(anime)/anime.episodes * 100).toFixed(1) + '%' : '0%' }"></div>
+                          </div>
+                        </div>
+                        <div class="anime-progres-bottom">
+                          <div> 
+                            <i class="fas fa-pencil-alt" @click="isUserTyping = true;animeProgressInputId = anime.id"></i>
+                            <vue3-autocounter class="number-counter" ref='counter' :startAmount='0'  suffix=' EPs' :endAmount="anime.counterEndAmount" :duration='1.25'  separator=',' :autoinit='true' />
+                            
+                          </div>
+                          <div>{{ anime.episodes }} Eps </div>
+                        </div>
+                      </div>
+                      
+                    </template>
+
+                    
+
+                    <template v-else>
+                      <span v-if="anime.episodes" style="float:right; color: black;">EPs: {{ anime.episodes }}</span>
+                    </template>
+
+                  </template> 
+
                 </div>
 
                 
@@ -205,6 +247,19 @@
     <div id="left-area" class="area">Past</div>
   </div>
 
+  <div v-if="isUserTyping" style="z-index:99; background-color: grey; border: 2px solid black; border-radius: 10px; padding: 15px; position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  height: 30%;">
+    <label for="progressInput">Enter Anime Progress:</label>
+    <input type="number" id="progressInput" v-model="animeProgressInput">
+    <br><br>
+    <button @click="updateProgress(anime)">Update Progress</button>
+    <br><br>
+    <button @click="isUserTyping = false">Cancel</button>
+  </div>
+
   <div v-if="showCircle" 
          :style="{ background: `url(${selectedImage}) center/cover`, 
                    transform: `translate(${imgPosition.x}px, ${imgPosition.y}px)` }" 
@@ -256,9 +311,15 @@
 <script>
   import AOS from 'aos'
   import 'aos/dist/aos.css'
+  // import CountTo from 'vue-count-to';
+  import Vue3autocounter from 'vue3-autocounter';
 
   export default {
     name: "TrendingAnime",
+    components: {
+      // CountTo,
+      'vue3-autocounter': Vue3autocounter,
+    },
 
     data() {
       return {
@@ -302,9 +363,20 @@
         popularPage: 1,
 
         myAnimeList: [],
+        myProgressList: [],
+        animeElements: [],
+        oveserver: null,
+
+
         listStyle: "triple",
 
         myAnimeListTab: 'current',
+
+        testVal: 20,
+
+        isUserTyping: false,
+        animeProgressInput: null,
+        animeProgressInputId: null,
 
 
 
@@ -363,6 +435,10 @@
                 color
               }
 
+              format
+              duration
+              volumes
+
                 
               }
             }
@@ -405,7 +481,7 @@
         const totalPages = 500
         const randomPage = Math.floor(Math.random() * totalPages) + 1; // Random page number
         // const randomPage = 50
-        console.log(randomPage)
+        // console.log(randomPage)
         const query = `
           query ($page: Int, $perPage: Int) {
             Page(page: $page, perPage: $perPage) {
@@ -904,6 +980,9 @@
                 large
                 color
               }
+              format
+              duration
+              volumes
 
                 
               }
@@ -918,7 +997,7 @@
           perPage: 18
         };
 
-        console.log(this.popularPage)
+        // console.log(this.popularPage)
         this.popularPage++
 
         try {
@@ -938,6 +1017,7 @@
           this.fetchedData = this.fetchedData.concat(jsonResponse.data.Page.media);
 
           console.log(this.fetchedData)
+          
         } catch (error) {
           console.error('Error fetching data:', error);
         } finally {
@@ -996,6 +1076,9 @@
                   large
                   color
                 }
+                format
+                duration
+                volumes
               }
             }
           }`;
@@ -1020,10 +1103,22 @@
           // console.log(jsonResponse)
           this.fetchedData = jsonResponse.data.Page.media;
           console.log(this.fetchedData);
+          this.checkVisibility()
+          
         } catch (error) {
           console.error('Error fetching data:', error);
         } finally {
           this.loading = false;
+          // window.scrollBy(0, 100);
+          // window.scrollBy(0, -10);
+          // Use a delay to allow the scroll to take effect
+          await new Promise(resolve => setTimeout(resolve, 500));
+          console.log('waited a bit')
+
+          // Scroll back to the original position
+          window.scrollBy(0, 100);
+          window.scrollBy(0, -100);
+          
         }
       },
 
@@ -1069,6 +1164,77 @@
         window.scrollTo(0, this.scrollPosition); // Restore the scroll position
       },
 
+      
+      checkVisibility() {
+        if(this.fetchedData?.length < 1) return
+        // console.log('hey');
+        this.fetchedData.forEach(anime => {
+          console.log('hewy');
+          // const el = this.$refs[anime.id];
+          const el = document.getElementById(`anime-${anime.id}`);
+          
+          
+          if(!el) return
+
+          if(!anime.hasAppeared){
+            anime.counterEndAmount = 0
+            anime.progress = 0
+          }
+
+
+          // if(el) console.log('exis');
+          if (this.isElementInViewport(el)) {
+            anime.hasAppeared = true;
+
+            anime.counterEndAmount = this.checkProgress(anime)
+            if(anime.episodes) {
+              // anime.progress = (10/anime.episodes * 100).toFixed(1)
+              anime.progress = (this.checkProgress(anime)/anime.episodes * 100)
+            }
+          }
+        });
+      },
+      isElementInViewport(el) {
+        const rect = el.getBoundingClientRect();
+        // console.log('checkigns');
+        return (
+          rect.top >= 0 &&
+          rect.left >= 0 &&
+          rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+          rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+        );
+      },
+
+      checkProgress(anime) {
+        // Assuming myAnimeList is an array of anime objects with an 'id' property
+        const foundAnime = this.myAnimeList.find(item => item.id === anime.id);
+        
+        if (foundAnime) {
+          if (foundAnime.progress) return foundAnime.progress; // Return the progress if the anime is found
+          return 1;
+        } else {
+          return 1; // Return 1 if the anime is not found
+        }
+      },
+
+      updateProgress() {
+        const foundIndex = this.myAnimeList.findIndex(item => item.id === this.animeProgressInputId);
+
+        if (foundIndex !== -1) {
+          this.myAnimeList[foundIndex].progress = this.animeProgressInput;
+          this.checkVisibility()
+          console.log(`Updated Anime Progress: ${this.animeProgressInput}`);
+        } else {
+          console.log("Anime not found in myAnimeList.");
+        }
+
+        this.animeProgressInput = null;
+        this.animeProgressInputId = null;
+        this.isUserTyping = false;
+      },
+
+
+
 
     },
 
@@ -1081,14 +1247,9 @@
           this.enableScroll();
         }
       },
-  
-        
-      
-      
       myAnimeList: {
         deep: true,
         handler(newValue) {
-          
           localStorage.setItem('localMyAnimeList', JSON.stringify(newValue));
         }
       },
@@ -1122,23 +1283,35 @@
       if (localMyAnimeList) {
         // If it exists, set it to the component's data
         this.myAnimeList = JSON.parse(localMyAnimeList);
-        // console.log('Local data "animeList" exists:', this.myAnimeList);
+        console.log('Local data "animeList" exists:', this.myAnimeList);
       } else {
         console.log('Local data "animeList" does not exist.');
       }
+
+      this.myProgressList = [
+        {id: 11061, watched: 50}
+      ]
       
-      this.fetchTrendingAnime();
+      // this.fetchTrendingAnime();
       this.currentMode = 'profile'
-      this.currentMode = 'trending'
+      // this.currentMode = 'trending'
+      // this.currentMode = 'popular'
 
       this.listStyle = 'detail'
       // this.fetchPopularAnime()
       
       // this.myAnimeList =[16498,113415,11061]
-      // this.fetchAnimeList()
+      this.fetchAnimeList()
 
       // this.isMenuOpen = true
+
+      this.checkVisibility(); // Initial check
+      window.addEventListener('scroll', this.checkVisibility);
     },
+
+    beforeUnmount() {
+      window.removeEventListener('scroll', this.checkVisibility);
+  },
 
     
 
@@ -1594,7 +1767,7 @@
 
   .detail-row-list-container li {
     display: grid;
-    grid-template-columns: 45% 50%;
+    grid-template-columns: 45% 52.5%;
     justify-content: space-between;
     /* justify-content: space-around; */
     align-items: center;
@@ -1670,17 +1843,75 @@
     /* color: white; */
   }
 
+  .detail-row-list-container .anime-detail{
+    padding: 12.5px;
+  }
+
   .detail-row-list-container .description{
     transition: all 2s ease;
-    margin: 0;
+    margin: 10px 0;
     line-height: 1.5em;
     /* max-height: 15em; */
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 6;
+    -webkit-line-clamp: 5;
     -webkit-box-orient: vertical;
     text-overflow: ellipsis;
     white-space: normal;
+
+    color: grey;
+    font-size: .85em;
+  }
+
+  .anime-progress-box{
+    /* display: grid;
+    grid-template-columns: 10% 75% 15%;
+    justify-content: space-between;
+    align-items: center; */
+  }
+
+  .anime-progress-top{
+    text-align: right;
+    display: block;
+  }
+
+  .anime-progres-bottom{
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .number-counter{
+    /* display: inline-block;
+    min-width: 55px; */
+  }
+
+  .anime-progres-bottom i{
+    margin-right: 10px;
+  }
+
+  .item-progress-container {
+    margin-bottom: 10px;
+  }
+
+
+
+  .anime-progress-container {
+    width: 100%;
+    height: 5px;
+    margin: 5px auto 15px;
+    background-color: lightgray;
+    position: relative;
+  }
+
+  .anime-progress-bar {
+    position: absolute;
+    left: 0;
+    display: inline-block;
+    height: 100%;
+    background-color: #FB6350;
+    width: 0%;
+    max-width: 100%;
+    transition: all 1.25s ease-in-out;
   }
 
 
