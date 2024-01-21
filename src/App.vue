@@ -1760,7 +1760,7 @@
 
   .detail-row-list-container{
     margin: 0;
-    margin-bottom: 50px;
+    margin-bottom: 120px;
     padding-left: 0;
     list-style: none;
   }
@@ -1917,7 +1917,7 @@
 
   .single-row-list-container{
     margin: 0;
-    margin-bottom: 50px;
+    margin-bottom: 120px;
     padding-left: 0;
     list-style: none;
   }
