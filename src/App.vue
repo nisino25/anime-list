@@ -95,8 +95,8 @@
 
                   <hr>
 
-                  <template v-for="(genre)  in anime.genres" :key="genre">
-                    <span>{{ genre }}, </span>
+                  <template v-for="(genre)  in anime.genres" :key="genre" >
+                    <span class="genre">{{ genre }}, </span>
                   </template>
 
                   
@@ -1847,14 +1847,19 @@
     padding: 12.5px;
   }
 
+  .detail-row-list-container .anime-detail .genre{
+    font-size: .8em;
+    line-height: 1.2;
+  }
+
   .detail-row-list-container .description{
     transition: all 2s ease;
     margin: 10px 0;
-    line-height: 1.5em;
+    line-height: 1.2em;
     /* max-height: 15em; */
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 5;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     text-overflow: ellipsis;
     white-space: normal;
@@ -1878,6 +1883,7 @@
   .anime-progres-bottom{
     display: flex;
     justify-content: space-between;
+    font-size:.9em;
   }
 
   .number-counter{
@@ -1887,6 +1893,7 @@
 
   .anime-progres-bottom i{
     margin-right: 10px;
+    
   }
 
   .item-progress-container {
