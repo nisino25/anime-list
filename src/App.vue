@@ -120,16 +120,20 @@
                             <vue3-autocounter class="number-counter" ref='counter' :startAmount='0'  suffix=' EPs' :endAmount="anime.counterEndAmount" :duration='1.25'  separator=',' :autoinit='true' />
                             
                           </div>
-                          <div>{{ anime.episodes }} Eps </div>
+                          <div>{{ anime.episodes }} Eps<i class="fa-solid fa-trash" style="color: #FB6350; margin: 0 0 0 7.5px;" @click="removeAnime(anime)" ></i></div>
                         </div>
                       </div>
+
+                      
                       
                     </template>
+                    
 
                     
 
                     <template v-else>
-                      <span v-if="anime.episodes" style="float:right; color: black;">EPs: {{ anime.episodes }}</span>
+                      <div style="float:right; color: black;">{{ anime.episodes }} Eps<i class="fa-solid fa-trash" style="color: #FB6350; margin: 0 0 0 7.5px;" @click="removeAnime(anime)" ></i></div>
+                      <!-- <span v-if="anime.episodes" style="float:right; color: black;">EPs: {{ anime.episodes }}</span> -->
                     </template>
 
                   </template> 
@@ -217,7 +221,7 @@
             >
               <img :src="anime.coverImage.large" :alt="anime.title.romaji"/>
   
-              <p @click="getDetail(anime)">{{ anime.title.native }}</p>
+              <p @click="getDetail(anime)">{{index +1}}. {{ anime.title.native }}</p>
               <div class="star-rating">
                   <div class="stars-outer">
                       <div class="stars-inner" :style="{ width: `${anime.averageScore}%` }"></div>
@@ -255,9 +259,15 @@
     <label for="progressInput">Enter Anime Progress:</label>
     <input type="number" id="progressInput" v-model="animeProgressInput">
     <br><br>
-    <button @click="updateProgress(anime)">Update Progress</button>
+    <button @click="updateProgress()">Update Progress</button>
     <br><br>
     <button @click="isUserTyping = false">Cancel</button>
+
+    <br><br><br><br>
+    <input type="number" v-model="tempTotalEpisodes">
+    <br><br>
+    <button @click="updateTempTotal()">Update <br>tempTotalEpisodes</button>
+
   </div>
 
   <div v-if="showCircle" 
@@ -378,6 +388,8 @@
         animeProgressInput: null,
         animeProgressInputId: null,
 
+        tempTotalEpisodes: null,
+
 
 
 
@@ -449,7 +461,7 @@
 
         const variables = {
           page: 1,
-          perPage: 18
+          perPage: 50
         };
 
         try {
@@ -676,7 +688,7 @@
             x: event.touches[0].clientX - 50, // Assuming circle radius 50px
             y: event.touches[0].clientY - 50,
           };
-        }, 500); // .5 second
+        }, 750); // .5 second
       },
       cancelPress(event) {
         // if(this.currentMode == 'trending') return
@@ -725,7 +737,7 @@
 
                 if (!animeExists) {
                   
-                  this.myAnimeList.push({ id: this.selectedAnimeId, status });
+                  this.myAnimeList.push({ id: this.selectedAnimeId, status, lastUpdated:  Date.now() });
                 } else {
                   // Handle the rejection case, maybe with an alert or error message
                   console.log('Anime with the same ID and status already exists.');
@@ -994,7 +1006,7 @@
 
         const variables = {
           page: this.popularPage,
-          perPage: 18
+          perPage: 30
         };
 
         // console.log(this.popularPage)
@@ -1027,7 +1039,6 @@
 
       async fetchAnimeList() {
         if(this.myAnimeList.length < 1) return
-        console.log(this.myAnimeListTab)
         this.loading = true;
         this.startLoading(); // Assuming you have a custom progress bar method
 
@@ -1084,7 +1095,7 @@
           }`;
 
         const variables = {
-          ids: this.filteredMyAnimeList
+          ids: this.filteredMyAnimeList.map(anime => anime.id)
         };
 
         try {
@@ -1100,22 +1111,18 @@
             })
           });
           const jsonResponse = await response.json();
-          // console.log(jsonResponse)
           this.fetchedData = jsonResponse.data.Page.media;
-          console.log(this.fetchedData);
+
+          this.sortMyList()
           this.checkVisibility()
+
+          console.log(this.fetchedData)
           
         } catch (error) {
           console.error('Error fetching data:', error);
         } finally {
           this.loading = false;
-          // window.scrollBy(0, 100);
-          // window.scrollBy(0, -10);
-          // Use a delay to allow the scroll to take effect
           await new Promise(resolve => setTimeout(resolve, 500));
-          console.log('waited a bit')
-
-          // Scroll back to the original position
           window.scrollBy(0, 100);
           window.scrollBy(0, -100);
           
@@ -1169,7 +1176,6 @@
         if(this.fetchedData?.length < 1) return
         // console.log('hey');
         this.fetchedData.forEach(anime => {
-          console.log('hewy');
           // const el = this.$refs[anime.id];
           const el = document.getElementById(`anime-${anime.id}`);
           
@@ -1222,8 +1228,11 @@
 
         if (foundIndex !== -1) {
           this.myAnimeList[foundIndex].progress = this.animeProgressInput;
+          this.myAnimeList[foundIndex].lastUpdated =  Date.now();
+          // console.log( Date.now())
+          
           this.checkVisibility()
-          console.log(`Updated Anime Progress: ${this.animeProgressInput}`);
+          // console.log(`Updated Anime Progress: ${this.animeProgressInput}`);
         } else {
           console.log("Anime not found in myAnimeList.");
         }
@@ -1231,6 +1240,45 @@
         this.animeProgressInput = null;
         this.animeProgressInputId = null;
         this.isUserTyping = false;
+        this.sortMyList()
+      },
+
+      updateTempTotal() {
+        const foundIndex = this.myAnimeList.findIndex(item => item.id === this.animeProgressInputId);
+
+        if (foundIndex !== -1) {
+          this.myAnimeList[foundIndex].tempTotalEpisodes = this.tempTotalEpisodes;
+          // this.myAnimeList[foundIndex].lastUpdated =  Date.now();
+          // console.log( Date.now())
+          
+          this.checkVisibility()
+          // console.log(`Updated Anime Progress: ${this.animeProgressInput}`);
+        } else {
+          console.log("Anime not found in myAnimeList.");
+        }
+
+        // this.animeProgressInput = null;
+        this.tempTotalEpisodes = null;
+        this.isUserTyping = false;
+        this.sortMyList()
+      },
+
+      sortMyList(){
+        this.fetchedData.forEach(fetchedAnime => {
+          const foundAnime = this.filteredMyAnimeList.find(filteredAnime => filteredAnime.id === fetchedAnime.id);
+          if (foundAnime) {
+            fetchedAnime.lastUpdated = foundAnime.lastUpdated;
+            if(!fetchedAnime.episodes && foundAnime.tempTotalEpisodes){
+              fetchedAnime.episodes = foundAnime.tempTotalEpisodes
+            }
+          }
+        });
+        this.fetchedData = this.fetchedData.sort((a, b) => {
+          const lastUpdatedA = a.lastUpdated || 0; // Use 0 if 'lastUpdated' is not present
+          const lastUpdatedB = b.lastUpdated || 0; // Use 0 if 'lastUpdated' is not present
+
+          return lastUpdatedB - lastUpdatedA; // Sort in descending order
+        });
       },
 
 
@@ -1259,20 +1307,8 @@
     computed: {
       filteredMyAnimeList() {
         return this.myAnimeList
-          .filter(anime => anime.status === this.myAnimeListTab)
-          .map(anime => anime.id);
+          .filter(anime => anime.status === this.myAnimeListTab);
       },
-      // groupedAnime() {
-      //   const grouped = {};
-      //   for (const anime of this.myAnimeList) {
-      //     const status = anime.status;
-      //     if (!grouped[status]) {
-      //       grouped[status] = [];
-      //     }
-      //     grouped[status].push(anime.id); // Push the id property
-      //   }
-      //   return grouped;
-      // },
     },
 
     mounted() {
@@ -1297,6 +1333,7 @@
       // this.currentMode = 'trending'
       // this.currentMode = 'popular'
 
+      // this.listStyle = 'triple'
       this.listStyle = 'detail'
       // this.fetchPopularAnime()
       
@@ -1844,7 +1881,7 @@
   }
 
   .detail-row-list-container .anime-detail{
-    padding: 12.5px;
+    padding: 5px 12.5px;
   }
 
   .detail-row-list-container .anime-detail .genre{
@@ -1859,7 +1896,7 @@
     /* max-height: 15em; */
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
     text-overflow: ellipsis;
     white-space: normal;
@@ -1892,7 +1929,7 @@
   }
 
   .anime-progres-bottom i{
-    margin-right: 10px;
+    margin-right: 7.5px;
     
   }
 
