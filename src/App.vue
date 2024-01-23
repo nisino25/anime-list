@@ -66,7 +66,7 @@
   </template>
 
   <div class="list-container">
-    <template v-if="fetchedData.length">
+    <template v-if="fetchedData.length && !(currentMode === 'profile' && myAnimeListTab === 'past')">
 
       <template v-if="listStyle == 'detail'">
         <ul class="detail-row-list-container">
@@ -237,6 +237,35 @@
       </template>
 
     </template>
+
+    <template v-else>
+      <template v-for="(element, index)  in timelineData" :key="index" >
+        <span>{{element.year}}.{{ element.month }}</span><br>
+            <ul class="triple-row-list" style="margin-top: 10px; margin-bottom: 25px">
+              <template v-for="(animeId) in element.ids" :key="animeId" >
+                <li 
+                  data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000"  
+                  @touchstart="startPress(foundAnime(animeId), $event)" 
+                  @touchend="cancelPress($event)"
+                  @touchmove="moveImage($event)"
+                >
+                  <img :src="foundAnime(animeId).coverImage.large" :alt="foundAnime(animeId).title.romaji"/>
+      
+                  <p @click="getDetail(foundAnime(animeId))">{{index +1}}. {{ foundAnime(animeId).title.native }}</p>
+                  <div class="star-rating">
+                      <div class="stars-outer">
+                          <div class="stars-inner" :style="{ width: `${foundAnime(animeId).averageScore}%` }"></div>
+                          
+                          
+                      </div>
+                      <span>EP:{{ foundAnime(animeId).episodes }}</span>
+                  </div>
+                  
+                </li>
+              </template>
+            </ul>
+        </template>
+    </template>
   </div>
 
 
@@ -251,11 +280,7 @@
     <div id="left-area" class="area">Past</div>
   </div>
 
-  <div v-if="isUserTyping" style="z-index:99; background-color: grey; border: 2px solid black; border-radius: 10px; padding: 15px; position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%,-50%);
-  height: 30%;">
+  <div v-if="isUserTyping" style="z-index:99; background-color: grey; border: 2px solid black; border-radius: 10px; padding: 15px; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); height: 30%;">
     <label for="progressInput">Enter Anime Progress:</label>
     <input type="number" id="progressInput" v-model="animeProgressInput">
     <br><br>
@@ -376,6 +401,8 @@
         myProgressList: [],
         animeElements: [],
         oveserver: null,
+
+        timelineData: [],
 
 
         listStyle: "triple",
@@ -1114,6 +1141,8 @@
           this.fetchedData = jsonResponse.data.Page.media;
 
           this.sortMyList()
+
+          if(this.myAnimeListTab == 'past') this.sortByRelease()
           this.checkVisibility()
 
           console.log(this.fetchedData)
@@ -1280,7 +1309,41 @@
           return lastUpdatedB - lastUpdatedA; // Sort in descending order
         });
       },
+      sortByRelease(){
+        this.fetchedData =this.fetchedData.sort((a, b) => {
+          const yearDiff = a.startDate.year - b.startDate.year;
+          if (yearDiff !== 0) {
+            return yearDiff; // Sort by year first
+          } else {
+            return a.startDate.month - b.startDate.month; // If years are the same, sort by month
+          }
+        });
+        this.createTimelineData();
+      },
+      
+      createTimelineData() {
+        this.timelineData = [];
+        let timelineMap = new Map();
 
+        this.fetchedData.forEach(item => {
+          const key = `${item.startDate.year}-${item.startDate.month}`;
+          if (!timelineMap.has(key)) {
+            timelineMap.set(key, {
+              month: item.startDate.month,
+              year: item.startDate.year,
+              ids: []
+            });
+          }
+          timelineMap.get(key).ids.push(item.id);
+        });
+
+        this.timelineData = Array.from(timelineMap.values());
+        console.table(this.timelineData)
+      },
+
+      foundAnime(id) {
+        return this.fetchedData.find(anime => anime.id === id);
+      },
 
 
 
@@ -1309,9 +1372,10 @@
         return this.myAnimeList
           .filter(anime => anime.status === this.myAnimeListTab);
       },
+      
     },
 
-    mounted() {
+    async mounted() {
       console.clear()
       AOS.init();
 
@@ -1334,11 +1398,14 @@
       // this.currentMode = 'popular'
 
       // this.listStyle = 'triple'
-      this.listStyle = 'detail'
+      this.listStyle = 'triple'
       // this.fetchPopularAnime()
       
       // this.myAnimeList =[16498,113415,11061]
-      this.fetchAnimeList()
+      this.myAnimeListTab = 'past'
+      await this.fetchAnimeList()
+
+      // this.sortByRelease()
 
       // this.isMenuOpen = true
 
@@ -1348,7 +1415,7 @@
 
     beforeUnmount() {
       window.removeEventListener('scroll', this.checkVisibility);
-  },
+    },
 
     
 
