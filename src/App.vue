@@ -1393,17 +1393,17 @@
       ]
       
       // this.fetchTrendingAnime();
-      this.currentMode = 'profile'
+      // this.currentMode = 'profile'
       // this.currentMode = 'trending'
-      // this.currentMode = 'popular'
+      this.currentMode = 'popular'
 
       // this.listStyle = 'triple'
       this.listStyle = 'triple'
-      // this.fetchPopularAnime()
+      this.fetchPopularAnime()
       
       // this.myAnimeList =[16498,113415,11061]
       this.myAnimeListTab = 'past'
-      await this.fetchAnimeList()
+      // await this.fetchAnimeList()
 
       // this.sortByRelease()
 
