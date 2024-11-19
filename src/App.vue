@@ -244,8 +244,11 @@
         <span>{{ element.year }}</span><br>
         <ul class="triple-row-list" style="margin-top: 10px; margin-bottom: 25px">
           <!-- Loop through the IDs associated with the year -->
-          <template v-for="animeId in element.ids" :key="animeId">
-            <li  
+          <template v-for="(animeId, animeIndex) in element.ids" :key="animeId">
+            <li 
+              data-aos="fade-up" 
+              :data-aos-delay="((animeIndex % 3) * 100) + 0" 
+              data-aos-duration="1000"  
               @touchstart="startPress(foundAnime(animeId), $event)" 
               @touchend="cancelPress($event)"
               @touchmove="moveImage($event)"
@@ -257,12 +260,23 @@
               />
               <!-- Anime title -->
               <p @click="getDetail(foundAnime(animeId))">
-                {{ index + 1 }}. {{ foundAnime(animeId).title.native }}
+                {{ animeIndex + 1 }}. {{ foundAnime(animeId).title.native }}
               </p>
+              <!-- Star rating -->
+              <div class="star-rating">
+                <div class="stars-outer">
+                  <div 
+                    class="stars-inner" 
+                    :style="{ width: `${foundAnime(animeId).averageScore}%` }"
+                  ></div>
+                </div>
+                <span>EP: {{ foundAnime(animeId).episodes }}</span>
+              </div>
             </li>
           </template>
         </ul>
       </template>
+
     </template>
   </div>
 
