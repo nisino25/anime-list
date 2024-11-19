@@ -242,7 +242,7 @@
       <template v-for="(element, index) in timelineData" :key="index">
         <!-- Display the year -->
         <span>{{ element.year }}</span><br>
-        <ul class="triple-row-list" style="margin-top: 10px; margin-bottom: 25px">
+        <ul class="triple-row-list" style="margin-top: 10px; margin-bottom: 15px">
           <!-- Loop through the IDs associated with the year -->
           <template v-for="(animeId, animeIndex) in element.ids" :key="animeId">
             <li 
@@ -262,16 +262,6 @@
               <p @click="getDetail(foundAnime(animeId))">
                 {{ animeIndex + 1 }}. {{ foundAnime(animeId).title.native }}
               </p>
-              <!-- Star rating -->
-              <div class="star-rating">
-                <div class="stars-outer">
-                  <div 
-                    class="stars-inner" 
-                    :style="{ width: `${foundAnime(animeId).averageScore}%` }"
-                  ></div>
-                </div>
-                <span>EP: {{ foundAnime(animeId).episodes }}</span>
-              </div>
             </li>
           </template>
         </ul>
