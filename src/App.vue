@@ -6,7 +6,7 @@
 
   <div v-if="currentMode == 'profile'" @click="resetLocaldata()" style="position: absolute; right: 0; top:10px; transform: translateY(0%); display: block;" class="button">Rest localData</div>
 
-  <div class="tab-wrapper" style="grid-template-columns: 22% 22% 22% 22%;">
+  <div v-if="myAnimeListTab !== 'past'" class="tab-wrapper" style="grid-template-columns: 22% 22% 22% 22%;">
       <div @click="listStyle = 'detail'" class="tab"  :style="{ background: listStyle == 'detail' ? '#FB6350' : '' }">
         <span>detail</span>
       </div>
@@ -239,32 +239,30 @@
     </template>
 
     <template v-else>
-      <template v-for="(element, index)  in timelineData" :key="index" >
-        <span>{{element.year}}.{{ element.month }}</span><br>
-            <ul class="triple-row-list" style="margin-top: 10px; margin-bottom: 25px">
-              <template v-for="(animeId) in element.ids" :key="animeId" >
-                <li 
-                  data-aos="fade-up" :data-aos-delay="((index % 3) * 100) + 0"  data-aos-duration="1000"  
-                  @touchstart="startPress(foundAnime(animeId), $event)" 
-                  @touchend="cancelPress($event)"
-                  @touchmove="moveImage($event)"
-                >
-                  <img :src="foundAnime(animeId).coverImage.large" :alt="foundAnime(animeId).title.romaji"/>
-      
-                  <p @click="getDetail(foundAnime(animeId))">{{index +1}}. {{ foundAnime(animeId).title.native }}</p>
-                  <div class="star-rating">
-                      <div class="stars-outer">
-                          <div class="stars-inner" :style="{ width: `${foundAnime(animeId).averageScore}%` }"></div>
-                          
-                          
-                      </div>
-                      <span>EP:{{ foundAnime(animeId).episodes }}</span>
-                  </div>
-                  
-                </li>
-              </template>
-            </ul>
-        </template>
+      <template v-for="(element, index) in timelineData" :key="index">
+        <!-- Display the year -->
+        <span>{{ element.year }}</span><br>
+        <ul class="triple-row-list" style="margin-top: 10px; margin-bottom: 25px">
+          <!-- Loop through the IDs associated with the year -->
+          <template v-for="animeId in element.ids" :key="animeId">
+            <li  
+              @touchstart="startPress(foundAnime(animeId), $event)" 
+              @touchend="cancelPress($event)"
+              @touchmove="moveImage($event)"
+            >
+              <!-- Anime cover image -->
+              <img 
+                :src="foundAnime(animeId)?.coverImage.large" 
+                :alt="foundAnime(animeId).title.romaji"
+              />
+              <!-- Anime title -->
+              <p @click="getDetail(foundAnime(animeId))">
+                {{ index + 1 }}. {{ foundAnime(animeId).title.native }}
+              </p>
+            </li>
+          </template>
+        </ul>
+      </template>
     </template>
   </div>
 
@@ -1324,21 +1322,20 @@
       createTimelineData() {
         this.timelineData = [];
         let timelineMap = new Map();
-
+      
         this.fetchedData.forEach(item => {
-          const key = `${item.startDate.year}-${item.startDate.month}`;
-          if (!timelineMap.has(key)) {
-            timelineMap.set(key, {
-              month: item.startDate.month,
-              year: item.startDate.year,
+          const yearKey = item.startDate.year; // Group by year only
+          if (!timelineMap.has(yearKey)) {
+            timelineMap.set(yearKey, {
+              year: yearKey,
               ids: []
             });
           }
-          timelineMap.get(key).ids.push(item.id);
+          timelineMap.get(yearKey).ids.push(item.id);
         });
-
+      
         this.timelineData = Array.from(timelineMap.values());
-        console.table(this.timelineData)
+        console.table(this.timelineData);
       },
 
       foundAnime(id) {
